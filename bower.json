@@ -1,0 +1,16 @@
+{
+  "name": "google-youtube-upload",
+  "version": "0.0.1",
+  "authors": ["Jeff Posnick <jeffy@google.com>"],
+  "description": "Upload videos to YouTube from your browser.",
+  "keywords": "youtube, upload, polymer, web-components",
+  "main": "google-youtube-upload.html",
+  "license": "Apache2",
+  "homepage": "https://github.com/googlewebcomponents/google-youtube-upload",
+  "ignore": [
+    "**/.*"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.2.4"
+  }
+}

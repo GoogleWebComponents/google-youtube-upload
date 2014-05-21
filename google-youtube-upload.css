@@ -1,10 +1,8 @@
 ﻿:host {
-  display: block;
+  display: inline-block;
+  position: relative;
 }
 
-/* To ensure your styling works under the Shadow DOM polyfill, see
-   www.polymer-project.org/docs/polymer/styling.html#directives */
-polyfill-next-selector { content: ':host > h2'; }
-::content h2 {
-  color: blue;
+:host google-signin, #files, #upload {
+  float: left;
 }

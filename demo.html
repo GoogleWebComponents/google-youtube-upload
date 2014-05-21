@@ -1,21 +1,73 @@
 <!doctype html>
 <!-- Copyright (c) 2014 Google Inc. All rights reserved. -->
 <html>
-<head>
-  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-  <title>google-youtube-upload Demo</title>
+  <head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>google-youtube-upload Demo</title>
+    <script src="../platform/platform.js"></script>
+    <link rel="import" href="google-youtube-upload.html">
+  </head>
+  <body unresolved>
+    <p>A <code>google-youtube-upload</code> element looks like this:</p>
 
-  <script src="../platform/platform.js"></script>
-  <link rel="import" href="google-youtube-upload.html">
+    <google-youtube-upload clientId="1081407441937-kb9ismfsf1nnk831pasehm47sg1qo936.apps.googleusercontent.com"></google-youtube-upload>
 
-</head>
-<body unresolved>
+    <p><h1>Uploads</h1></p>
 
-  <p>An example of using <code>&lt;seed-element></code>:</p>
+    <template id="status" bind="{{status}}">
+      <strong>Status</strong>: {{message}}
+    </template>
 
-  <seed-element>
-    <h2>Hello seed-element</h2>
-  </seed-element>
+    <table class="google-drive-table">
+      <tr>
+        <th>Upload queue</th>
+      </tr>
+      <template id="queue" repeat="{{uploadList}}">
+        <tr>
+          <td>{{name}}</td>
+        </tr>
+      </template>
+    </table>
 
-</body>
+    <table class="google-drive-table">
+      <tr>
+        <th>Successful uploads</th>
+      </tr>
+      <template id="uploaded" repeat="{{uploadedList}}">
+        <tr>
+          <td><img src="{{iconLink}}"/>&nbsp;<strong>{{title}}</strong></td>
+          <td><a href="{{selfLink}}">Drive Link</a></td>
+          <td><a href="{{webContentLink}}">Web Link</a></td>
+          <td>{{mimeType}}</td>
+        </tr>
+      </template>
+    </table>
+
+    <script>
+      document.addEventListener('google-drive-upload-started', function(e){
+        var t = document.querySelector("#queue");
+        t.model = {};
+        t.model.uploadList = e.detail.files;
+      });
+
+      document.addEventListener('google-drive-files-selected', function(e){
+        var t = document.querySelector("#queue");
+        t.model = {};
+        t.model.uploadList = e.detail.files;
+      })
+
+      document.addEventListener('google-drive-upload-completed', function(e){
+        var t = document.querySelector("#uploaded");
+        t.model = {};
+        t.model.uploadedList = e.detail.files;
+        console.log(e.detail.files);
+      });
+
+      document.addEventListener('google-drive-upload-status', function(e){
+        var t = document.querySelector("#status");
+        t.model = {};
+        t.model.status = { message: e.detail.status };
+      });
+    </script>
+  </body>
 </html>

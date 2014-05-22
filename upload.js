@@ -78,10 +78,7 @@ var MediaUploader = function(options) {
   var noop = function() {};
   this.file = options.file;
   this.contentType = options.contentType || this.file.type || 'application/octet-stream';
-  this.metadata = options.metadata || {
-    'title': this.file.name,
-    'mimeType': this.contentType
-  };
+  this.metadata = options.metadata;
   this.token = options.token;
   this.onComplete = options.onComplete || noop;
   this.onError = options.onError || noop;
@@ -93,9 +90,9 @@ var MediaUploader = function(options) {
   if (!this.url) {
     var params = options.params || {};
     params.uploadType = 'resumable';
-    this.url = this.buildUrl_(options.fileId, params);
+    this.url = this.buildUrl_(params);
   }
-  this.httpMethod = options.fileId ? 'PUT' : 'POST';
+  this.httpMethod = 'POST';
 };
 
 /**
@@ -207,7 +204,6 @@ MediaUploader.prototype.onContentUploadError_ = function(e) {
   }
 };
 
-
 /**
  * Handles errors for the initial request.
  *
@@ -240,11 +236,8 @@ MediaUploader.prototype.buildQuery_ = function(params) {
 * @param {object} [params] Query parameters
 * @return {string} URL
 */
-MediaUploader.prototype.buildUrl_ = function(id, params) {
-  var url = 'https://www.googleapis.com/upload/drive/v2/files/';
-  if (id) {
-    url += id;
-  }
+MediaUploader.prototype.buildUrl_ = function(params) {
+  var url = 'https://www.googleapis.com/upload/youtube/v3/videos';
   var query = this.buildQuery_(params);
   if (query) {
     url += '?' + query;

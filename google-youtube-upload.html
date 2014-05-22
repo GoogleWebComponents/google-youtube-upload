@@ -1,5 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../google-signin/google-signin.html">
+<link rel="import" href="upload.html">
 
 <!--
 Element enabling you to upload videos to YouTube.
@@ -19,161 +20,197 @@ Automatic upload on file select, without Upload button:
 @status alpha
 @homepage http://googlewebcomponents.github.io/google-youtube-upload
 -->
-<polymer-element name="google-youtube-upload" attributes="autoUpload clientId">
+<polymer-element name="google-youtube-upload" attributes="autoUpload clientId videoTitle description tags categoryId privacyStatus">
   <template>
-    <script src="../cors-upload-sample/upload.js"></script>
-
     <link rel="stylesheet" href="google-youtube-upload.css"/>
 
-    <google-signin
-      clientId="{{clientId}}"
-      scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly">
-    </google-signin>
+    <div>
+      <google-signin
+        clientId="{{clientId}}"
+        scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly">
+      </google-signin>
+    </div>
 
-    <span style="display:{{ authenticated ? 'inline-block' : 'none' }}">
-      <input tabindex="0" type="file" id="files" class="custom-file-input" name="files[]" multiple on-change="{{handleFilePick}}"/>
-      <button on-click="{{manualUpload}}" id="upload" style="display:{{ autoUpload ? 'none' : 'block' }}">Upload Videos</button>
-    </span>
+    <div style="display:{{ authenticated ? 'inline-block' : 'none' }}">
+      <input tabindex="0" type="file" id="file" on-change="{{handleFilePick}}">
+      <button on-click="{{uploadFile}}" style="display:{{ autoUpload ? 'none' : 'block' }}">Upload Video</button>
+    </div>
   </template>
 
   <script>
     Polymer({
       /**
-       * Fired when the upload status changes.
+       * Fired when there's a change in the progress of the upload.
        *
-       * @event google-youtube-upload-upload-status
+       * @event google-youtube-upload-progress
        */
 
       /**
-       * Fired when files have been selected.
+       * Fired when video uploads have successfully completed.
+       * The YouTube video id is passed in as a parameter.
+       * Note that the video isn't immediately ready for playback;
+       * the `google-youtube-upload-video-available` event is fired
+       * once the necessary processing is done on YouTube's servers and
+       * the video is playable.
        *
-       * @event google-youtube-upload-files-selected
+       * @event google-youtube-upload-completed
        */
 
       /**
-       * Fired when the element attempts to upload files.
+       * Fired when the video is available for playback on YouTube.
        *
-       * @event google-youtube-upload-upload-started
+       * @event google-youtube-upload-video-available
        */
 
       /**
-       * Fired when file uploads have successfully completed.
+       * Fired when YouTube uploads have failed.
        *
-       * @event google-youtube-upload-upload-completed
+       * @event google-youtube-upload-failed
        */
 
       /**
-       * Fired when file uploads have failed.
-       *
-       * @event google-youtube-upload-upload-failed
-       */
-
-      /**
-       * Fired when the upload lists are cleared.
-       *
-       * @event google-youtube-upload-upload-cleared
-       */
-
-      /**
-       * A Google Developers clientId reference
+       * A Google Developers clientId reference.
        *
        * @attribute clientId
        * @type string
        */
       clientId: '',
+
       /**
-       * The queue of files being uploaded
-       *
-       * @attribute uploadList
-       * @type array
-       */
-      uploadList: [],
-      /**
-       * The queue of files that have been uploaded
-       *
-       * @attribute uploadedList
-       * @type array
-       */
-      uploadedList: [],
-      /**
-       * Whether files should be automatically uploaded
+       * Whether files should be automatically uploaded.
        *
        * @attribute autoUpload
        * @type boolean
        */
       autoUpload: false,
+
       /**
-       * Whether the user has authenticated or not
+       * Whether the user has authenticated or not.
        *
        * @attribute authenticated
        * @type boolean
        */
       authenticated: false,
-      ready: function () {
-        this.fire('google-youtube-upload-upload-status', { status: 'Authentication required' });
-        document.addEventListener('google-signin-success', function (e) {
+
+      /**
+       * The title for the new YouTube video.
+       *
+       * Defaults to 'Untitled Video'.
+       *
+       * @attribute videoTitle
+       * @type string
+       * @default 'Untitled Video'
+       */
+      videoTitle: 'Untitled Video',
+
+      /**
+       * The description for the new YouTube video.
+       *
+       * Defaults to 'Uploaded via https://github.com/GoogleWebComponents/google-youtube-upload'.
+       *
+       * @attribute description
+       * @type string
+       * @default 'Uploaded via https://github.com/GoogleWebComponents/google-youtube-upload'
+       */
+      description: 'Uploaded via https://github.com/GoogleWebComponents/google-youtube-upload',
+
+      /**
+       * The array of tags for the new YouTube video.
+       *
+       * Defaults to ['google-youtube-upload'].
+       *
+       * @attribute tags
+       * @type Array.<string>
+       * @default ['google-youtube-upload']
+       */
+      tags: ['google-youtube-upload'],
+
+      /**
+       * The numeric YouTube cateogry id for the new video. You can retrieve a list of valid
+       * category ids via
+       * https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videoCategories.list?part=snippet&regionCode=us
+       *
+       * Defaults to 22 ("People & Blogs").
+       *
+       * @attribute categoryId
+       * @type number
+       * @default 22
+       */
+      categoryId: 22,
+
+      /**
+       * The [privacy setting](https://support.google.com/youtube/answer/157177?hl=en)
+       * for the new video.
+       *
+       * Valid values are 'public', 'private', and 'unlisted'.
+       *
+       * Defaults to 'public'.
+       *
+       * @attribute privacyStatus
+       * @type string
+       * @default 'public'
+       */
+      privacyStatus: 'public',
+
+      ready: function() {
+        this.fire('google-youtube-upload-status', { status: 'Authentication required' });
+
+        document.addEventListener('google-signin-success', function(e) {
           this.accessToken = e.detail.result.access_token;
           this.authenticated = true;
-          this.fire('google-youtube-upload-upload-status', { status: 'Ready' });
         }.bind(this));
 
-        document.addEventListener('google-signed-out', function (e) {
+        document.addEventListener('google-signed-out', function(e) {
           this.authenticated = false;
-          this.fire('google-youtube-upload-upload-status', { status: 'Please sign-in to continue.' });
         }.bind(this));
       },
-      selectFiles: function (files) {
-        this.queue = files;
 
-        for (var i = 0, f; f = files[i]; i++) {
-          this.uploadList.push(f);
-        }
+      uploadFile: function() {
+        if (this.$.file.files.length > 0) {
+          // TODO: Disable "Upload Video" button.
+          var f = this.$.file.files[0];
 
-        if (this.autoUpload) {
-          this.uploadFiles(files);
-        }
+          var metadata = {
+            snippet: {
+              title: this.videoTitle,
+              description: this.description,
+              tags: this.tags,
+              categoryId: this.categoryId
+            },
+            status: {
+              privacyStatus: this.privacyStatus
+            }
+          };
 
-        this.fire('google-youtube-upload-files-selected', { files: this.uploadList });
-        this.fire('google-youtube-upload-upload-status', { status: 'Files selected'});
-      },
-      manualUpload: function () {
-        this.uploadFiles(this.queue);
-      },
-      uploadFiles: function (files) {
-        var uploadedList = this.uploadedList;
-        this.fire('google-youtube-upload-upload-started', { files: this.uploadList });
-        this.fire('google-youtube-upload-upload-status', { status: 'Uploading' });
-
-        for (var i = 0, f; f = files[i]; i++) {
           var uploader = new MediaUploader({
             file: f,
             token: this.accessToken,
-            onError: function (data) {
-              this.fire('google-youtube-upload-upload-failed', { data: data })
+            metadata: metadata,
+            params: {
+              part: Object.keys(metadata).join(',')
             },
-            onComplete: function (data) {
-              uploadedList.push(JSON.parse(data));
-              this.fire('google-youtube-upload-upload-status', { status: 'Upload successful' });
-              this.uploadList = [];
-              this.fire('google-youtube-upload-upload-completed', { files: this.uploadedList, data: data });
+            onError: function(data) {
+              console.log('onError', data);
+              this.fire('google-youtube-upload-failed', { data: data });
+            }.bind(this),
+            onProgress: function(data) {
+              console.log('onProgress', data);
+              this.fire('google-youtube-upload-progress', { data: data });
+            }.bind(this),
+            onComplete: function(data) {
+              console.log('onComplete', data);
+              this.fire('google-youtube-upload-completed', { data: data });
             }.bind(this)
           });
           uploader.upload();
         }
+        // Else fire an error event? Or just silently ignore?
+      },
 
-      },
-      tapSelect: function (evt) {
-        this.$.files.click();
-      },
-      handleFilePick: function (evt) {
-        evt.stopPropagation();
-        evt.preventDefault();
-        this.selectFiles(evt.target.files);
-      },
-      clearUploadList: function () {
-        this.uploadedList = [];
-        this.uploadList = [];
-        this.fire('google-youtube-upload-upload-cleared', { status: 'Upload lists cleared' });
+      handleFilePick: function(e) {
+        if (this.autoUpload) {
+          this.uploadFile();
+        }
       }
     });
   </script>

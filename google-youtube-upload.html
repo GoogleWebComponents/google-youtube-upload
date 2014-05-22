@@ -1,6 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../google-signin/google-signin.html">
-<link rel="import" href="upload.html">
+<link rel="import" href="../google-youtube/google-youtube.html">
 
 <!--
 Element enabling you to upload videos to YouTube.
@@ -24,16 +24,24 @@ Automatic upload on file select, without Upload button:
   <template>
     <link rel="stylesheet" href="google-youtube-upload.css"/>
 
+    <script src="../cors-upload-sample/upload.js"></script>
+
     <div>
+      <p><img src="{{channelThumbnailUrl}}">{{channelDisplayName}}</p>
       <google-signin
         clientId="{{clientId}}"
         scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly">
       </google-signin>
     </div>
 
-    <div style="display:{{ authenticated ? 'inline-block' : 'none' }}">
-      <input tabindex="0" type="file" id="file" on-change="{{handleFilePick}}">
+    <div style="display:{{ authenticated ? 'block' : 'none' }}">
+      <input tabindex="0" type="file" id="file" accept="video/*" on-change="{{handleFilePick}}">
       <button on-click="{{uploadFile}}" style="display:{{ autoUpload ? 'none' : 'block' }}">Upload Video</button>
+    </div>
+
+    <div style="display:{{ fractionComplete ? 'inline-block' : 'none' }}">
+      <span>Upload Progress:</span>
+      <progress id="progress" max="1" value="{{fractionComplete}}"></progress>
     </div>
   </template>
 
@@ -60,6 +68,12 @@ Automatic upload on file select, without Upload button:
        * Fired when the video is available for playback on YouTube.
        *
        * @event google-youtube-upload-video-available
+       */
+
+      /**
+       * Fired when the video failed transcoding and will not playback on YouTube.
+       *
+       * @event google-youtube-upload-video-failed
        */
 
       /**
@@ -152,12 +166,35 @@ Automatic upload on file select, without Upload button:
        */
       privacyStatus: 'public',
 
+      fractionComplete: 0,
+      channelDisplayName: 'Not Logged In',
+      channelThumbnailUrl: '',
+      videoId: '',
+
       ready: function() {
         this.fire('google-youtube-upload-status', { status: 'Authentication required' });
 
         document.addEventListener('google-signin-success', function(e) {
           this.accessToken = e.detail.result.access_token;
+          this.gapi = e.detail.gapi;
           this.authenticated = true;
+
+          this.gapi.client.request({
+            path: '/youtube/v3/channels',
+            params: {
+              part: 'snippet',
+              mine: 'true'
+            },
+            callback: function(response) {
+              if (response.error) {
+                // TODO: Make sure we're consistent about which parameters get passed to which events.
+                this.fire('google-youtube-upload-failed', { data: response.error });
+              } else {
+                this.channelDisplayName = response.items[0].snippet.title;
+                this.channelThumbnailUrl = response.items[0].snippet.thumbnails.default.url;
+              }
+            }.bind(this)
+          });
         }.bind(this));
 
         document.addEventListener('google-signed-out', function(e) {
@@ -183,6 +220,7 @@ Automatic upload on file select, without Upload button:
           };
 
           var uploader = new MediaUploader({
+            baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
             file: f,
             token: this.accessToken,
             metadata: metadata,
@@ -194,12 +232,14 @@ Automatic upload on file select, without Upload button:
               this.fire('google-youtube-upload-failed', { data: data });
             }.bind(this),
             onProgress: function(data) {
-              console.log('onProgress', data);
+              this.fractionComplete = data.loaded / data.total;
               this.fire('google-youtube-upload-progress', { data: data });
             }.bind(this),
             onComplete: function(data) {
-              console.log('onComplete', data);
-              this.fire('google-youtube-upload-completed', { data: data });
+              var uploadResponse = JSON.parse(data);
+              this.fire('google-youtube-upload-completed', { data: uploadResponse });
+              this.videoId = uploadResponse.id;
+              this.pollForVideoStatus();
             }.bind(this)
           });
           uploader.upload();
@@ -211,6 +251,36 @@ Automatic upload on file select, without Upload button:
         if (this.autoUpload) {
           this.uploadFile();
         }
+      },
+
+      pollForVideoStatus: function() {
+        this.gapi.client.request({
+          path: '/youtube/v3/videos',
+          params: {
+            part: 'status',
+            id: this.videoId
+          },
+          callback: function(response) {
+            // TODO: Check for response.error
+            var status = response.items[0].status;
+            switch (status.uploadStatus) {
+              // This is a non-final status, so we need to poll again.
+              case 'uploaded':
+                setTimeout(this.pollForVideoStatus.bind(this), 15 * 1000);
+              break;
+
+              // The video was successfully transcoded and is available.
+              case 'processed':
+                this.fire('google-youtube-upload-video-available', { data: this.videoId });
+              break;
+
+              // All other statuses indicate a permanent transcoding failure.
+              default:
+                this.fire('google-youtube-upload-video-failed', { data: status });
+              break;
+            }
+          }.bind(this)
+        });
       }
     });
   </script>

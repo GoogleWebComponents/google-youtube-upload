@@ -81,6 +81,7 @@ var MediaUploader = function(options) {
   this.metadata = options.metadata;
   this.token = options.token;
   this.onComplete = options.onComplete || noop;
+  this.onProgress = options.onProgress || noop;
   this.onError = options.onError || noop;
   this.offset = options.offset || 0;
   this.chunkSize = options.chunkSize || 0;
@@ -139,6 +140,9 @@ MediaUploader.prototype.sendFile_ = function() {
   xhr.setRequestHeader('Content-Type', this.contentType);
   xhr.setRequestHeader('Content-Range', "bytes " + this.offset + "-" + (end - 1) + "/" + this.file.size);
   xhr.setRequestHeader('X-Upload-Content-Type', this.file.type);
+  if (xhr.upload) {
+    xhr.upload.addEventListener('progress', this.onProgress);
+  }
   xhr.onload = this.onContentUploadSuccess_.bind(this);
   xhr.onerror = this.onContentUploadError_.bind(this);
   xhr.send(content);
@@ -154,6 +158,9 @@ MediaUploader.prototype.resume_ = function() {
   xhr.open('PUT', this.url, true);
   xhr.setRequestHeader('Content-Range', "bytes */" + this.file.size);
   xhr.setRequestHeader('X-Upload-Content-Type', this.file.type);
+  if (xhr.upload) {
+    xhr.upload.addEventListener('progress', this.onProgress);
+  }
   xhr.onload = this.onContentUploadSuccess_.bind(this);
   xhr.onerror = this.onContentUploadError_.bind(this);
   xhr.send();

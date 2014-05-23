@@ -31,17 +31,20 @@ Automatic upload on video file select, without a Video Upload button:
 
     <script src="../cors-upload-sample/upload.js"></script>
 
-    <div>
-      <p><img src="{{channelThumbnailUrl}}">{{channelDisplayName}}</p>
+    <div id="login-logout">
+      <img id="channel-image" src="{{channelThumbnailUrl}}" style="display: {{ channelThumbnailUrl ? 'inline' : 'none' }}">
+      <span id="channel-name">{{channelDisplayName}}</span>
+
       <google-signin
         clientId="{{clientId}}"
         scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly">
       </google-signin>
     </div>
 
-    <div style="display:{{ authenticated ? 'block' : 'none' }}">
-      <input tabindex="0" type="file" id="file" accept="video/*" on-change="{{handleFilePick}}">
-      <button on-click="{{uploadFile}}" style="display:{{ autoUpload ? 'none' : 'block' }}">Upload Video</button>
+    <div style="display: {{ authenticated ? 'block' : 'none' }}">
+      <input type="file" id="file" class="button" accept="video/*" on-change="{{handleFilePick}}">
+      <button on-click="{{uploadFile}}" style="display: {{ autoUpload ? 'none' : 'block' }}">Upload Video</button>
+      <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are authorized by the owner to make the content publicly available on YouTube, and that it otherwise complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms">http://www.youtube.com/t/terms</a></p>
     </div>
   </template>
 
@@ -251,6 +254,8 @@ Automatic upload on video file select, without a Video Upload button:
 
         document.addEventListener('google-signed-out', function(e) {
           this.authenticated = false;
+          this.channelDisplayName = 'Not Logged In';
+          this.channelThumbnailUrl = '';
         }.bind(this));
       },
 

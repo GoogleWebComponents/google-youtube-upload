@@ -7,13 +7,18 @@ Element enabling you to upload videos to YouTube.
 
 ##### Examples
 
-Manual upload with an Upload button once videos are selected:
+Manual upload with an Video Upload button once a video file is selected:
 
-    <google-youtube-upload clientId="..."></google-youtube-upload>
+    <google-youtube-upload
+      clientId="...">
+    </google-youtube-upload>
 
-Automatic upload on file select, without Upload button:
+Automatic upload on video file select, without a Video Upload button:
 
-    <google-youtube-upload autoUpload clientId="..."></google-youtube-upload>
+    <google-youtube-upload
+      autoUpload="true"
+      clientId="...">
+    </google-youtube-upload>
 
 @element google-youtube-upload
 @blurb Element enabling you to upload videos to YouTube.
@@ -38,48 +43,99 @@ Automatic upload on file select, without Upload button:
       <input tabindex="0" type="file" id="file" accept="video/*" on-change="{{handleFilePick}}">
       <button on-click="{{uploadFile}}" style="display:{{ autoUpload ? 'none' : 'block' }}">Upload Video</button>
     </div>
-
-    <div style="display:{{ fractionComplete ? 'inline-block' : 'none' }}">
-      <span>Upload Progress:</span>
-      <progress id="progress" max="1" value="{{fractionComplete}}"></progress>
-    </div>
   </template>
 
   <script>
     Polymer({
       /**
-       * Fired when there's a change in the progress of the upload.
+       * Fired when the upload begins.
        *
-       * @event google-youtube-upload-progress
+       * `e.detail` is set to the
+       * [file](https://developer.mozilla.org/en-US/docs/Web/API/File)
+       * being uploaded.
+       *
+       * @event youtube-upload-started
+       * @param {Object} e Event parameters.
        */
 
       /**
-       * Fired when video uploads have successfully completed.
-       * The YouTube video id is passed in as a parameter.
-       * Note that the video isn't immediately ready for playback;
-       * the `google-youtube-upload-video-available` event is fired
-       * once the necessary processing is done on YouTube's servers and
-       * the video is playable.
+       * Fired while the upload is in progress.
        *
-       * @event google-youtube-upload-completed
+       * `e.detail` is set to the
+       * [XMLHttpRequestProgressEvent](http://www.w3.org/TR/progress-events/),
+       * and the bytes transferred so far can be obtained there.
+       *
+       * @event youtube-upload-progress
+       * @param {Object} e Event parameters.
        */
 
       /**
-       * Fired when the video is available for playback on YouTube.
+       * Fired when YouTube upload has failed.
        *
-       * @event google-youtube-upload-video-available
+       * Since the actual upload failed, it's not possible for the YouTube server to attempt to
+       * process the video, and no `youtube-processing-status` events will be fired.
+       *
+       * `e.detail` is set to a string explaining what went wrong.
+       *
+       * @event youtube-upload-failed
+       * @param {Object} e Event parameters
        */
 
       /**
-       * Fired when the video failed transcoding and will not playback on YouTube.
+       * Fired when video upload has completed, and YouTube has begun processing the video.
        *
-       * @event google-youtube-upload-video-failed
+       * At this point, the video is not yet playable, and there is no guarantee that
+       * the server-side YouTube processing will succeed.
+       *
+       * One or more `youtube-processing-status` events will then be fired after this event,
+       * followed by either a `youtube-processing-completed` or `youtube-processing-failed`.
+       *
+       * `e.detail` is set to the YouTube video id of the video.
+       *
+       * @event youtube-upload-completed
+       * @param {Object} e Event parameters.
        */
 
       /**
-       * Fired when YouTube uploads have failed.
+       * Fired while server-side processing is in progress.
        *
-       * @event google-youtube-upload-failed
+       * Server-side processing can take an
+       * [unpredictable amount of time](https://support.google.com/youtube/answer/71674?hl=en&ref_topic=2888603),
+       * and these events will be periodically fired each time the processing status is polled.
+       *
+       * `e.detail` is set to a
+       * [status](https://developers.google.com/youtube/v3/docs/videos#status)
+       * object.
+       *
+       * @event youtube-processing-status
+       * @param {Object} e Event parameters
+       */
+
+      /**
+       * Fired when server-side processing is successful and the video is
+       * available for playback on YouTube.
+       *
+       * The video can be played at `http://youtu.be/VIDEO_ID` or could be
+       * embedded using the
+       * [`google-youtube`](https://github.com/GoogleWebComponents/google-youtube) element.
+       *
+       * `e.detail` is set to the YouTube video id of the video.
+       *
+       * @event youtube-processing-completed
+       * @param {Object} e Event parameters
+       */
+
+      /**
+       * Fired when the video
+       * [failed transcoding](https://support.google.com/youtube/topic/2888603?hl=en&ref_topic=16547)
+       * and can't be played on YouTube.
+       *
+       * `e.detail` is set to a
+       * [status](https://developers.google.com/youtube/v3/docs/videos#status)
+       * object which has more details about the failure.
+       *
+       * @event youtube-processing-failed
+       * @param {Object} e Event parameters
        */
 
       /**
@@ -140,9 +196,8 @@ Automatic upload on file select, without Upload button:
       tags: ['google-youtube-upload'],
 
       /**
-       * The numeric YouTube cateogry id for the new video. You can retrieve a list of valid
-       * category ids via
-       * https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videoCategories.list?part=snippet&regionCode=us
+       * The numeric YouTube
+       * [cateogry id](https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videoCategories.list?part=snippet&regionCode=us).
        *
        * Defaults to 22 ("People & Blogs").
        *
@@ -166,14 +221,12 @@ Automatic upload on file select, without Upload button:
        */
       privacyStatus: 'public',
 
-      fractionComplete: 0,
       channelDisplayName: 'Not Logged In',
       channelThumbnailUrl: '',
       videoId: '',
+      STATUS_POLLING_ITERVAL_MILLIS: 60 * 1000, // One minute.
 
       ready: function() {
-        this.fire('google-youtube-upload-status', { status: 'Authentication required' });
-
         document.addEventListener('google-signin-success', function(e) {
           this.accessToken = e.detail.result.access_token;
           this.gapi = e.detail.gapi;
@@ -187,8 +240,7 @@ Automatic upload on file select, without Upload button:
             },
             callback: function(response) {
               if (response.error) {
-                // TODO: Make sure we're consistent about which parameters get passed to which events.
-                this.fire('google-youtube-upload-failed', { data: response.error });
+                this.fire('youtube-upload-failed', response.error.message);
               } else {
                 this.channelDisplayName = response.items[0].snippet.title;
                 this.channelThumbnailUrl = response.items[0].snippet.thumbnails.default.url;
@@ -229,19 +281,21 @@ Automatic upload on file select, without Upload button:
             },
             onError: function(data) {
               console.log('onError', data);
-              this.fire('google-youtube-upload-failed', { data: data });
+              this.fire('youtube-upload-failed', data);
             }.bind(this),
             onProgress: function(data) {
-              this.fractionComplete = data.loaded / data.total;
-              this.fire('google-youtube-upload-progress', { data: data });
+              this.fire('youtube-upload-progress', data);
             }.bind(this),
             onComplete: function(data) {
               var uploadResponse = JSON.parse(data);
-              this.fire('google-youtube-upload-completed', { data: uploadResponse });
+              this.fire('youtube-upload-completed', uploadResponse.id);
               this.videoId = uploadResponse.id;
+
               this.pollForVideoStatus();
             }.bind(this)
           });
+
+          this.fire('youtube-upload-started', f);
           uploader.upload();
         }
         // Else fire an error event? Or just silently ignore?
@@ -261,23 +315,29 @@ Automatic upload on file select, without Upload button:
             id: this.videoId
           },
           callback: function(response) {
-            // TODO: Check for response.error
-            var status = response.items[0].status;
-            switch (status.uploadStatus) {
-              // This is a non-final status, so we need to poll again.
-              case 'uploaded':
-                setTimeout(this.pollForVideoStatus.bind(this), 15 * 1000);
-              break;
+            if (response.error) {
+              // Not exactly sure how to handle this one, since it means the status polling failed.
+              setTimeout(this.pollForVideoStatus.bind(this), this.STATUS_POLLING_ITERVAL_MILLIS);
+            } else {
+              var status = response.items[0].status;
 
-              // The video was successfully transcoded and is available.
-              case 'processed':
-                this.fire('google-youtube-upload-video-available', { data: this.videoId });
-              break;
+              switch (status.uploadStatus) {
+                // This is a non-final status, so we need to poll again.
+                case 'uploaded':
+                  this.fire('youtube-processing-status', status);
+                  setTimeout(this.pollForVideoStatus.bind(this), this.STATUS_POLLING_ITERVAL_MILLIS);
+                break;
 
-              // All other statuses indicate a permanent transcoding failure.
-              default:
-                this.fire('google-youtube-upload-video-failed', { data: status });
-              break;
+                // The video was successfully transcoded and is available.
+                case 'processed':
+                  this.fire('youtube-processing-completed', this.videoId);
+                break;
+
+                // All other statuses indicate a permanent transcoding failure.
+                default:
+                  this.fire('youtube-processing-failed', status);
+                break;
+              }
             }
           }.bind(this)
         });

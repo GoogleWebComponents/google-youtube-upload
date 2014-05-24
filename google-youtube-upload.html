@@ -64,9 +64,16 @@ Automatic upload on video file select, without a Video Upload button:
       /**
        * Fired while the upload is in progress.
        *
-       * `e.detail` is set to the
-       * [XMLHttpRequestProgressEvent](http://www.w3.org/TR/progress-events/),
-       * and the bytes transferred so far can be obtained there.
+       * `e.detail.progressEvent` is set to the corresponding
+       * [XMLHttpRequestProgressEvent](http://www.w3.org/TR/progress-events/).
+       *
+       * `e.detail.estimatedSecondsRemaining` is set to an estimate of the time remaining
+       * in the upload, based on the average upload speed so far.
+       *
+       * `e.detail.bytesPerSecond` is set to the average number of bytes sent per second
+       * sent so far.
+       *
+       * `e.fractionComplete` is set to the fraction of the upload that's complete, in the range [0, 1].
        *
        * @event youtube-upload-progress
        * @param {Object} e Event parameters.
@@ -227,6 +234,7 @@ Automatic upload on video file select, without a Video Upload button:
       channelDisplayName: 'Not Logged In',
       channelThumbnailUrl: '',
       videoId: '',
+      uploadStartTime: 0,
       STATUS_POLLING_ITERVAL_MILLIS: 60 * 1000, // One minute.
 
       ready: function() {
@@ -289,7 +297,21 @@ Automatic upload on video file select, without a Video Upload button:
               this.fire('youtube-upload-failed', data);
             }.bind(this),
             onProgress: function(data) {
-              this.fire('youtube-upload-progress', data);
+              var currentTime = (new Date).getTime();
+              var bytesUploaded = data.loaded;
+              var totalBytes = data.total;
+
+              // The times are in millis, so we need to divide by 1000 to get seconds.
+              var bytesPerSecond = bytesUploaded / ((currentTime - this.uploadStartTime) / 1000);
+              var estimatedSecondsRemaining = (totalBytes - bytesUploaded) / bytesPerSecond;
+              var fractionComplete = bytesUploaded / totalBytes;
+
+              this.fire('youtube-upload-progress', {
+                progressEvent: data,
+                bytesPerSecond: bytesPerSecond,
+                estimatedSecondsRemaining: estimatedSecondsRemaining,
+                fractionComplete: fractionComplete
+              });
             }.bind(this),
             onComplete: function(data) {
               var uploadResponse = JSON.parse(data);
@@ -301,6 +323,8 @@ Automatic upload on video file select, without a Video Upload button:
           });
 
           this.fire('youtube-upload-started', f);
+          // This won't correspond to the *exact* start of the upload, but it should be close enough.
+          this.uploadStartTime = (new Date).getTime();
           uploader.upload();
         }
         // Else fire an error event? Or just silently ignore?

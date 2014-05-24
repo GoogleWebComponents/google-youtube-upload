@@ -24,6 +24,7 @@
       <div>
         <span>Upload Progress:</span>
         <progress max="1" value="0"></progress>
+        <span id="upload-stats"></span>
       </div>
       <p id="progress-info"></p>
     </div>
@@ -32,16 +33,20 @@
       var uploadElement = document.querySelector('google-youtube-upload');
       var statusContainerElement = document.getElementById('status-container');
       var progressElement = document.querySelector('progress');
+      var uploadStatsElement = document.getElementById('upload-stats');
 
       uploadElement.addEventListener('youtube-upload-started', function() {
         statusContainerElement.style.display = 'block';
       });
 
       uploadElement.addEventListener('youtube-upload-progress', function(e) {
-        var loaded = e.detail.loaded;
-        var total = e.detail.total;
+        var megabytesPerSecond = Math.round(100 * e.detail.bytesPerSecond / (1024 * 1024)) / 100;
+        var minutesRemaining = Math.floor(e.detail.estimatedSecondsRemaining / 60);
+        var secondsRemaining = Math.round(e.detail.estimatedSecondsRemaining % 60);
+        var uploadStats = megabytesPerSecond + 'mB/s, ' + minutesRemaining + 'm' + secondsRemaining + 's remaining';
 
-        progressElement.setAttribute('value', loaded / total);
+        progressElement.setAttribute('value', e.detail.fractionComplete);
+        uploadStatsElement.textContent = uploadStats;
       });
 
       uploadElement.addEventListener('youtube-upload-failed', function(e) {

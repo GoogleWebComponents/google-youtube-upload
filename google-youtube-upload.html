@@ -269,6 +269,14 @@ Automatic upload on video file select, without a Video Upload button:
         }.bind(this));
       },
 
+      /**
+       * Uploads a video file to YouTube.
+       *
+       * `this.accessToken` must already be set to a valid OAuth 2 access token.
+       *
+       * @method uploadFile
+       * @param {object} f File object corresponding to the video to upload.
+       */
       uploadFile: function(f) {
         var metadata = {
           snippet: {

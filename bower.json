@@ -15,6 +15,7 @@
   "dependencies": {
     "polymer": "Polymer/polymer#~0.2.4",
     "google-signin": "GoogleWebComponents/google-signin#~0.0.6",
-    "google-youtube": "GoogleWebComponents/google-youtube#master"
+    "google-youtube": "GoogleWebComponents/google-youtube#master",
+    "cors-upload-sample": "jeffposnick/cors-upload-sample#master"
   }
 }

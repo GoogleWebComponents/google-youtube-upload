@@ -74,15 +74,15 @@
         var error = '';
         switch(e.detail.uploadStatus) {
           case 'failed':
-            error = e.detail.failureReason;
+            error = e.detail.failureReason || 'unknown error';
           break;
 
           case 'rejected':
-            error = e.detail.rejectionReason;
+            error = e.detail.rejectionReason || 'unknown error';
           break;
 
           default:
-            error = 'unknown';
+            error = 'unknown error';
           break;
         }
 

@@ -83,7 +83,7 @@ Automatic upload on video file select, without a Video Upload button:
        * Fired when YouTube upload has failed.
        *
        * Since the actual upload failed, it's not possible for the YouTube server to attempt to
-       * process the video, and no `youtube-processing-status` events will be fired.
+       * process the video, and no `youtube-processing-poll` events will be fired.
        *
        * `e.detail` is set to a string explaining what went wrong.
        *
@@ -97,7 +97,7 @@ Automatic upload on video file select, without a Video Upload button:
        * At this point, the video is not yet playable, and there is no guarantee that
        * the server-side YouTube processing will succeed.
        *
-       * One or more `youtube-processing-status` events will then be fired after this event,
+       * One or more `youtube-processing-poll` events will then be fired after this event,
        * followed by either a `youtube-processing-completed` or `youtube-processing-failed`.
        *
        * `e.detail` is set to the YouTube video id of the video.
@@ -117,7 +117,7 @@ Automatic upload on video file select, without a Video Upload button:
        * [status](https://developers.google.com/youtube/v3/docs/videos#status)
        * object.
        *
-       * @event youtube-processing-status
+       * @event youtube-processing-poll
        * @param {Object} e Event parameters
        */
 
@@ -125,7 +125,7 @@ Automatic upload on video file select, without a Video Upload button:
        * Fired when server-side processing is successful and the video is
        * available for playback on YouTube.
        *
-       * The video can be played at `http://youtu.be/VIDEO_ID` or could be
+       * The video can be played at `http://youtu.be/VIDEO_ID` and can be
        * embedded using the
        * [`google-youtube`](https://github.com/GoogleWebComponents/google-youtube) element.
        *
@@ -353,7 +353,7 @@ Automatic upload on video file select, without a Video Upload button:
               switch (status.uploadStatus) {
                 // This is a non-final status, so we need to poll again.
                 case 'uploaded':
-                  this.fire('youtube-processing-status', status);
+                  this.fire('youtube-processing-poll', status);
                   setTimeout(this.pollForVideoStatus.bind(this), this.STATUS_POLLING_ITERVAL_MILLIS);
                 break;
 

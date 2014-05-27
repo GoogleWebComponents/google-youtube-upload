@@ -58,7 +58,7 @@
         statusContainerElement.textContent = 'Upload complete. Video id "' + e.detail + '" is being processed...';
       });
 
-      uploadElement.addEventListener('youtube-processing-status', function(e) {
+      uploadElement.addEventListener('youtube-processing-poll', function(e) {
         statusContainerElement.textContent += '.';
       });
 
@@ -71,7 +71,7 @@
       });
 
       uploadElement.addEventListener('youtube-processing-failed', function(e) {
-        var error = '';
+        var error;
         switch(e.detail.uploadStatus) {
           case 'failed':
             error = e.detail.failureReason;

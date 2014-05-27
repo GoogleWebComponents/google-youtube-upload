@@ -1,0 +1,94 @@
+<!doctype html>
+<!-- Copyright (c) 2014 Google Inc. All rights reserved. -->
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>google-youtube-upload Demo</title>
+    <script src="../platform/platform.js"></script>
+    <link rel="import" href="google-youtube-upload.html">
+    <link rel="import" href="../google-youtube/google-youtube.html">
+    <style>
+      body {
+        font-family: Helvetica, sans-serif;
+      }
+    </style>
+  </head>
+  <body unresolved>
+    <p>A <code>google-youtube-upload</code> element looks like this:</p>
+
+    <google-youtube-upload
+      privacyStatus="unlisted"
+      clientId="1081407441937-kb9ismfsf1nnk831pasehm47sg1qo936.apps.googleusercontent.com">
+    </google-youtube-upload>
+
+    <div id="status-container" style="display: none">
+      <div>
+        <span>Upload Progress:</span>
+        <progress max="1" value="0"></progress>
+        <span id="upload-stats"></span>
+      </div>
+      <p id="progress-info"></p>
+    </div>
+
+    <script>
+      var uploadElement = document.querySelector('google-youtube-upload');
+      var statusContainerElement = document.getElementById('status-container');
+      var progressElement = document.querySelector('progress');
+      var uploadStatsElement = document.getElementById('upload-stats');
+
+      uploadElement.addEventListener('youtube-upload-started', function() {
+        statusContainerElement.style.display = 'block';
+      });
+
+      uploadElement.addEventListener('youtube-upload-progress', function(e) {
+        var megabytesPerSecond = (e.detail.bytesPerSecond / (1024 * 1024)).toFixed(2);
+        var minutesRemaining = Math.floor(e.detail.estimatedSecondsRemaining / 60);
+        var secondsRemaining = Math.round(e.detail.estimatedSecondsRemaining % 60);
+        var uploadStats = megabytesPerSecond + 'MB/s, ' + minutesRemaining + 'm' + secondsRemaining + 's remaining';
+
+        progressElement.setAttribute('value', e.detail.fractionComplete);
+        uploadStatsElement.textContent = uploadStats;
+      });
+
+      uploadElement.addEventListener('youtube-upload-failed', function(e) {
+        statusContainerElement.style.display = 'block';
+        statusContainerElement.textContent = e.detail;
+      });
+
+      uploadElement.addEventListener('youtube-upload-completed', function(e) {
+        statusContainerElement.textContent = 'Upload complete. Video id "' + e.detail + '" is being processed...';
+      });
+
+      uploadElement.addEventListener('youtube-processing-poll', function(e) {
+        statusContainerElement.textContent += '.';
+      });
+
+      uploadElement.addEventListener('youtube-processing-completed', function(e) {
+        statusContainerElement.textContent = 'Processing complete. The video is available at http://youtu.be/' + e.detail + ' and embedded below.';
+
+        var playerElement = document.createElement('google-youtube');
+        playerElement.setAttribute('videoId', e.detail);
+        statusContainerElement.appendChild(playerElement);
+      });
+
+      uploadElement.addEventListener('youtube-processing-failed', function(e) {
+        var error;
+        switch(e.detail.uploadStatus) {
+          case 'failed':
+            error = e.detail.failureReason || 'unknown error';
+          break;
+
+          case 'rejected':
+            error = e.detail.rejectionReason || 'unknown error';
+          break;
+
+          default:
+            error = 'unknown error';
+          break;
+        }
+
+        statusContainerElement.textContent = 'YouTube processing failed (' + error + ').';
+      });
+    </script>
+  </body>
+</html>

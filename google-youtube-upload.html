@@ -1,6 +1,5 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../google-signin/google-signin.html">
-<link rel="import" href="../google-youtube/google-youtube.html">
 
 <!--
 Element enabling you to upload videos to YouTube.
@@ -13,10 +12,12 @@ Manual upload with an Video Upload button once a video file is selected:
       clientId="...">
     </google-youtube-upload>
 
-Automatic upload on video file select, without a Video Upload button:
+Automatic upload on video file select, with a custom title, and 'unlisted' privacy:
 
     <google-youtube-upload
       autoUpload="true"
+      videoTitle="My Awesome Video"
+      privacyStatus="unlisted"
       clientId="...">
     </google-youtube-upload>
 
@@ -42,9 +43,11 @@ Automatic upload on video file select, without a Video Upload button:
     </div>
 
     <div style="display: {{ authenticated ? 'block' : 'none' }}">
-      <input type="file" id="file" class="button" accept="video/*" on-change="{{handleFilePick}}">
-      <button on-click="{{uploadFile}}" style="display: {{ autoUpload ? 'none' : 'block' }}">Upload Video</button>
-      <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are authorized by the owner to make the content publicly available on YouTube, and that it otherwise complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms">http://www.youtube.com/t/terms</a></p>
+      <input type="file" id="file" class="button" accept="video/*" on-change="{{handleFileChanged}}">
+
+      <button on-click="{{handleUploadClicked}}" style="display: {{ autoUpload ? 'none' : 'block' }}" disabled?="{{ !selectedFile }}">Upload Video</button>
+
+      <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are authorized by the owner to make the content publicly available on YouTube, and that it otherwise complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms" target="_blank">http://www.youtube.com/t/terms</a></p>
     </div>
   </template>
 
@@ -149,7 +152,16 @@ Automatic upload on video file select, without a Video Upload button:
        */
 
       /**
-       * A Google Developers clientId reference.
+       * An OAuth 2 clientId reference, obtained from the
+       * [Google Developers Console](https://console.developers.google.com).
+       *
+       * Follow
+       * [the steps](https://developers.google.com/console/help/new/#generatingoauth2)
+       * for registering for OAuth 2, ensure that the
+       * [YouTube Data API v3](https://developers.google.com/youtube/registering_an_application)
+       * is enabled for your API project, and ensure that the JavaScript Origin
+       * is set to the domain hosting the page on which
+       * you'll be using this element.
        *
        * @attribute clientId
        * @type string
@@ -197,7 +209,7 @@ Automatic upload on video file select, without a Video Upload button:
       /**
        * The array of tags for the new YouTube video.
        *
-       * Defaults to ['google-youtube-upload'].
+       * Defaults to `['google-youtube-upload']`.
        *
        * @attribute tags
        * @type Array.<string>
@@ -209,7 +221,7 @@ Automatic upload on video file select, without a Video Upload button:
        * The numeric YouTube
        * [cateogry id](https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videoCategories.list?part=snippet&regionCode=us).
        *
-       * Defaults to 22 ("People & Blogs").
+       * Defaults to `22` ("People & Blogs").
        *
        * @attribute categoryId
        * @type number
@@ -235,6 +247,7 @@ Automatic upload on video file select, without a Video Upload button:
       channelThumbnailUrl: '',
       videoId: '',
       uploadStartTime: 0,
+      selectedFile: null,
       STATUS_POLLING_ITERVAL_MILLIS: 60 * 1000, // One minute.
 
       ready: function() {
@@ -267,73 +280,90 @@ Automatic upload on video file select, without a Video Upload button:
         }.bind(this));
       },
 
-      uploadFile: function() {
-        if (this.$.file.files.length > 0) {
-          // TODO: Disable "Upload Video" button.
-          var f = this.$.file.files[0];
+      /**
+       * Uploads a video file to YouTube.
+       *
+       * `this.accessToken` must already be set to a valid OAuth 2 access token.
+       *
+       * @method uploadFile
+       * @param {object} f File object corresponding to the video to upload.
+       */
+      uploadFile: function(f) {
+        var metadata = {
+          snippet: {
+            title: this.videoTitle,
+            description: this.description,
+            tags: this.tags,
+            categoryId: this.categoryId
+          },
+          status: {
+            privacyStatus: this.privacyStatus
+          }
+        };
 
-          var metadata = {
-            snippet: {
-              title: this.videoTitle,
-              description: this.description,
-              tags: this.tags,
-              categoryId: this.categoryId
-            },
-            status: {
-              privacyStatus: this.privacyStatus
+        var uploader = new MediaUploader({
+          baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
+          file: f,
+          token: this.accessToken,
+          metadata: metadata,
+          params: {
+            part: Object.keys(metadata).join(',')
+          },
+          onError: function(data) {
+            var message = data;
+
+            // Assuming the error is raised by the YouTube API, data will be
+            // a JSON string with error.message set. I am not 100% sure that's the
+            // only time onError will be raised, though.
+            try {
+              var errorResponse = JSON.parse(data);
+              message = errorResponse.error.message;
+            } finally {
+              this.fire('youtube-upload-failed', message);
             }
-          };
+          }.bind(this),
+          onProgress: function(data) {
+            var currentTime = (new Date).getTime();
+            var bytesUploaded = data.loaded;
+            var totalBytes = data.total;
 
-          var uploader = new MediaUploader({
-            baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
-            file: f,
-            token: this.accessToken,
-            metadata: metadata,
-            params: {
-              part: Object.keys(metadata).join(',')
-            },
-            onError: function(data) {
-              console.log('onError', data);
-              this.fire('youtube-upload-failed', data);
-            }.bind(this),
-            onProgress: function(data) {
-              var currentTime = (new Date).getTime();
-              var bytesUploaded = data.loaded;
-              var totalBytes = data.total;
+            // The times are in millis, so we need to divide by 1000 to get seconds.
+            var bytesPerSecond = bytesUploaded / ((currentTime - this.uploadStartTime) / 1000);
+            var estimatedSecondsRemaining = (totalBytes - bytesUploaded) / bytesPerSecond;
+            var fractionComplete = bytesUploaded / totalBytes;
 
-              // The times are in millis, so we need to divide by 1000 to get seconds.
-              var bytesPerSecond = bytesUploaded / ((currentTime - this.uploadStartTime) / 1000);
-              var estimatedSecondsRemaining = (totalBytes - bytesUploaded) / bytesPerSecond;
-              var fractionComplete = bytesUploaded / totalBytes;
+            this.fire('youtube-upload-progress', {
+              progressEvent: data,
+              bytesPerSecond: bytesPerSecond,
+              estimatedSecondsRemaining: estimatedSecondsRemaining,
+              fractionComplete: fractionComplete
+            });
+          }.bind(this),
+          onComplete: function(data) {
+            var uploadResponse = JSON.parse(data);
+            this.fire('youtube-upload-completed', uploadResponse.id);
+            this.videoId = uploadResponse.id;
 
-              this.fire('youtube-upload-progress', {
-                progressEvent: data,
-                bytesPerSecond: bytesPerSecond,
-                estimatedSecondsRemaining: estimatedSecondsRemaining,
-                fractionComplete: fractionComplete
-              });
-            }.bind(this),
-            onComplete: function(data) {
-              var uploadResponse = JSON.parse(data);
-              this.fire('youtube-upload-completed', uploadResponse.id);
-              this.videoId = uploadResponse.id;
+            this.pollForVideoStatus();
+          }.bind(this)
+        });
 
-              this.pollForVideoStatus();
-            }.bind(this)
-          });
-
-          this.fire('youtube-upload-started', f);
-          // This won't correspond to the *exact* start of the upload, but it should be close enough.
-          this.uploadStartTime = (new Date).getTime();
-          uploader.upload();
-        }
-        // Else fire an error event? Or just silently ignore?
+        this.fire('youtube-upload-started', f);
+        // This won't correspond to the *exact* start of the upload, but it should be close enough.
+        this.uploadStartTime = (new Date).getTime();
+        uploader.upload();
       },
 
-      handleFilePick: function(e) {
+      handleFileChanged: function() {
+        this.selectedFile = this.$.file.files[0];
+
         if (this.autoUpload) {
-          this.uploadFile();
+          this.uploadFile(this.selectedFile);
         }
+      },
+
+      handleUploadClicked: function() {
+        this.uploadFile(this.selectedFile);
       },
 
       pollForVideoStatus: function() {

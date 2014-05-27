@@ -6,6 +6,7 @@
     <title>google-youtube-upload Demo</title>
     <script src="../platform/platform.js"></script>
     <link rel="import" href="google-youtube-upload.html">
+    <link rel="import" href="../google-youtube/google-youtube.html">
     <style>
       body {
         font-family: Helvetica, sans-serif;
@@ -40,10 +41,10 @@
       });
 
       uploadElement.addEventListener('youtube-upload-progress', function(e) {
-        var megabytesPerSecond = Math.round(100 * e.detail.bytesPerSecond / (1024 * 1024)) / 100;
+        var megabytesPerSecond = (e.detail.bytesPerSecond / (1024 * 1024)).toFixed(2);
         var minutesRemaining = Math.floor(e.detail.estimatedSecondsRemaining / 60);
         var secondsRemaining = Math.round(e.detail.estimatedSecondsRemaining % 60);
-        var uploadStats = megabytesPerSecond + 'mB/s, ' + minutesRemaining + 'm' + secondsRemaining + 's remaining';
+        var uploadStats = megabytesPerSecond + 'MB/s, ' + minutesRemaining + 'm' + secondsRemaining + 's remaining';
 
         progressElement.setAttribute('value', e.detail.fractionComplete);
         uploadStatsElement.textContent = uploadStats;

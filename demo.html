@@ -38,7 +38,7 @@
     <template is="auto-binding">
       <p>Upload videos with a <code>&lt;google-youtube-upload&gt;</code> element!</p>
 
-      <div style="display: {{ (state == 'pre-upload') ? 'block' : 'none' }}">
+      <template is="auto-binding" if="{{ state == 'pre-upload' }}">
         <div>
           <label for="video-title">Title:</label>
           <input id="video-title" type="text" value="{{videoTitle}}">
@@ -55,50 +55,54 @@
             <option>private</option>
           </select>
         </div>
+      </template>
 
-        <google-youtube-upload
-          clientId="1081407441937-kb9ismfsf1nnk831pasehm47sg1qo936.apps.googleusercontent.com"
-          videoTitle="{{videoTitle}}"
-          description="{{description}}"
-          privacyStatus="{{privacyStatus}}"
-          videoId="{{videoId}}"
-          on-youtube-upload-start="{{handleYouTubeUploadStart}}"
-          on-youtube-upload-progress="{{handleYouTubeUploadProgress}}"
-          on-youtube-upload-complete="{{handleYouTubeUploadComplete}}"
-          on-youtube-upload-fail="{{handleYouTubeUploadFail}}"
-          on-youtube-processing-poll="{{handleYouTubeProcessingPoll}}"
-          on-youtube-processing-complete="{{handleYouTubeProcessingComplete}}"
-          on-youtube-processing-fail="{{handleYouTubeProcessingFail}}">
-        </google-youtube-upload>
-      </div>
+      <!-- This can't be wrapped in a <template if="..."> since it will be removed from
+           the DOM when the conditional is false. It needs to remain in the DOM so that
+           it continues firing state-related events. -->
+      <google-youtube-upload
+        style="display: {{ (state == 'pre-upload') ? 'block' : 'none' }}"
+        clientId="1081407441937-kb9ismfsf1nnk831pasehm47sg1qo936.apps.googleusercontent.com"
+        videoTitle="{{videoTitle}}"
+        description="{{description}}"
+        privacyStatus="{{privacyStatus}}"
+        videoId="{{videoId}}"
+        on-youtube-upload-start="{{handleYouTubeUploadStart}}"
+        on-youtube-upload-progress="{{handleYouTubeUploadProgress}}"
+        on-youtube-upload-complete="{{handleYouTubeUploadComplete}}"
+        on-youtube-upload-fail="{{handleYouTubeUploadFail}}"
+        on-youtube-processing-poll="{{handleYouTubeProcessingPoll}}"
+        on-youtube-processing-complete="{{handleYouTubeProcessingComplete}}"
+        on-youtube-processing-fail="{{handleYouTubeProcessingFail}}">
+      </google-youtube-upload>
 
-      <div style="display: {{ (state == 'upload') ? 'block' : 'none' }}">
+      <template is="auto-binding" if="{{ state == 'upload' }}">
         <div>
           Upload Progress:
           <progress max="1" value="{{fractionComplete}}"></progress>
           <span>{{megabytesPerSecond}}MB/s, {{minutesRemaining}}m{{secondsRemaining}}s remaining</span>
         </div>
-      </div>
+      </template>
 
-      <div style="display: {{ (state == 'upload-complete') ? 'block' : 'none' }}">
+      <template is="auto-binding" if="{{ state == 'upload-complete' }}">
         <p>
           Upload complete. Please wait while video id '{{videoId}}' is
           <a href="https://support.google.com/youtube/answer/71674?ref_topic=2888603" target="_blank">processing</a>{{processingEllipses}}
         </p>
-      </div>
+      </template>
 
-      <div style="display: {{ (state == 'processing-complete') ? 'block' : 'none' }}">
+      <template is="auto-binding" if="{{ state == 'processing-complete' }}">
         <p>
           Processing complete. The video is available at
           <a href="http://youtu.be/{{videoId}}" target="_blank">http://youtu.be/{{videoId}}</a>
           and embedded below:
         </p>
         <google-youtube videoId="{{videoId}}"></google-youtube>
-      </div>
+      </template>
 
-      <div style="display: {{ (state == 'error') ? 'block' : 'none' }}">
+      <template is="auto-binding" if="{{ state == 'error' }}">
         <p>{{error}}</p>
-      </div>
+      </template>
     </template>
 
     <script>

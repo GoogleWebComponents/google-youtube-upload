@@ -35,7 +35,7 @@
     </style>
   </head>
   <body unresolved>
-    <template is="auto-binding">
+    <template id="wrapper" is="auto-binding">
       <p>Upload videos with a <code>&lt;google-youtube-upload&gt;</code> element!</p>
 
       <template is="auto-binding" if="{{ state == 'pre-upload' }}">
@@ -106,7 +106,7 @@
     </template>
 
     <script>
-      var template = document.querySelector('template');
+      var template = document.getElementById('wrapper');
       template.state = 'pre-upload';
       template.processingEllipses = '...';
 

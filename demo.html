@@ -36,9 +36,13 @@
   </head>
   <body unresolved>
     <template id="wrapper" is="auto-binding">
-      <p>Upload videos with a <code>&lt;google-youtube-upload&gt;</code> element!</p>
+      <p>
+        Upload videos with a
+        <code><a href="index.html" target="_blank">&lt;google-youtube-upload&gt;</a></code>
+        element!
+      </p>
 
-      <template is="auto-binding" if="{{ state == 'pre-upload' }}">
+      <template if="{{ state == 'pre-upload' }}">
         <div>
           <label for="video-title">Title:</label>
           <input id="video-title" type="text" value="{{videoTitle}}">
@@ -76,7 +80,7 @@
         on-youtube-processing-fail="{{handleYouTubeProcessingFail}}">
       </google-youtube-upload>
 
-      <template is="auto-binding" if="{{ state == 'upload' }}">
+      <template if="{{ state == 'upload' }}">
         <div>
           Upload Progress:
           <progress max="1" value="{{fractionComplete}}"></progress>
@@ -84,14 +88,14 @@
         </div>
       </template>
 
-      <template is="auto-binding" if="{{ state == 'upload-complete' }}">
+      <template if="{{ state == 'upload-complete' }}">
         <p>
           Upload complete. Please wait while video id '{{videoId}}' is
           <a href="https://support.google.com/youtube/answer/71674?ref_topic=2888603" target="_blank">processing</a>{{processingEllipses}}
         </p>
       </template>
 
-      <template is="auto-binding" if="{{ state == 'processing-complete' }}">
+      <template if="{{ state == 'processing-complete' }}">
         <p>
           Processing complete. The video is available at
           <a href="http://youtu.be/{{videoId}}" target="_blank">http://youtu.be/{{videoId}}</a>
@@ -100,7 +104,7 @@
         <google-youtube videoId="{{videoId}}"></google-youtube>
       </template>
 
-      <template is="auto-binding" if="{{ state == 'error' }}">
+      <template if="{{ state == 'error' }}">
         <p>{{error}}</p>
       </template>
     </template>

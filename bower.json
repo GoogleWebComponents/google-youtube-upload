@@ -5,7 +5,14 @@
     "Jeff Posnick <jeffy@google.com>"
   ],
   "description": "Upload videos to YouTube from your browser.",
-  "keywords": "youtube, upload, polymer, web-components",
+  "keywords": [
+    "google",
+    "youtube",
+    "upload",
+    "polymer",
+    "web-components",
+    "web-component"
+  ],
   "main": "google-youtube-upload.html",
   "license": "Apache2",
   "homepage": "https://github.com/googlewebcomponents/google-youtube-upload",

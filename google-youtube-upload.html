@@ -22,7 +22,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 @element google-youtube-upload
 @blurb Element enabling you to upload videos to YouTube.
 @status alpha
-@homepage http://googlewebcomponents.github.io/google-youtube-upload
+@homepage https://googlewebcomponents.github.io/google-youtube-upload
 -->
 <polymer-element name="google-youtube-upload" attributes="auto videoTitle clientId description tags categoryId privacyStatus videoId">
   <template>
@@ -172,8 +172,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
         /**
          * Whether files should be automatically uploaded.
          *
-         * Defaults to false.
-         *
          * @attribute auto
          * @type boolean
          * @default false
@@ -191,8 +189,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
         /**
          * The title for the new YouTube video.
          *
-         * Defaults to 'Untitled Video'.
-         *
          * @attribute title
          * @type string
          * @default 'Untitled Video'
@@ -201,8 +197,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 
         /**
          * The description for the new YouTube video.
-         *
-         * Defaults to 'Uploaded via a web component! Check out https://github.com/GoogleWebComponents/google-youtube-upload'.
          *
          * @attribute description
          * @type string
@@ -213,8 +207,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
         /**
          * The array of tags for the new YouTube video.
          *
-         * Defaults to `['google-youtube-upload']`.
-         *
          * @attribute tags
          * @type Array.<string>
          * @default ['google-youtube-upload']
@@ -224,8 +216,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
         /**
          * The numeric YouTube
          * [cateogry id](https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videoCategories.list?part=snippet&regionCode=us).
-         *
-         * Defaults to `22` ("People & Blogs").
          *
          * @attribute categoryId
          * @type number
@@ -238,8 +228,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * for the new video.
          *
          * Valid values are 'public', 'private', and 'unlisted'.
-         *
-         * Defaults to 'public'.
          *
          * @attribute privacyStatus
          * @type string

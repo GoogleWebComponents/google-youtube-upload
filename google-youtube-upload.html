@@ -1,5 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../google-signin/google-signin.html">
+<link rel="import" href="../google-apis/google-client-api.html">
+<link rel="import" href="../google-signin/google-signin-aware.html">
 
 <!--
 Element enabling you to upload videos to YouTube.
@@ -8,15 +9,14 @@ Element enabling you to upload videos to YouTube.
 
 Manual upload with a `Video Upload` button once a video file is selected:
 
-    <google-youtube-upload clientId="..."></google-youtube-upload>
+    <google-youtube-upload></google-youtube-upload>
 
 Automatic upload on video file select, with a custom title, and 'unlisted' privacy:
 
     <google-youtube-upload
       auto
       videoTitle="My Awesome Video"
-      privacyStatus="unlisted"
-      clientId="...">
+      privacyStatus="unlisted">
     </google-youtube-upload>
 
 @element google-youtube-upload
@@ -24,8 +24,9 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 @status alpha
 @homepage https://googlewebcomponents.github.io/google-youtube-upload
 -->
-<polymer-element name="google-youtube-upload" attributes="auto videoTitle clientId description tags categoryId privacyStatus videoId">
+<polymer-element name="google-youtube-upload" attributes="auto videoTitle description tags categoryId privacyStatus videoId">
   <template>
+    <google-client-api></google-client-api>
     <link rel="stylesheet" href="google-youtube-upload.css"/>
     <script src="../cors-upload-sample/upload.js"></script>
 
@@ -33,10 +34,11 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       <img id="channel-image" src="{{channel.thumbnail}}" style="display: {{ channel.thumbnail ? 'inline' : 'none' }}">
       <span id="channel-name">{{channel.name}}</span>
 
-      <google-signin
-        clientId="{{clientId}}"
-        scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly">
-      </google-signin>
+      <google-signin-aware
+        scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
+        on-google-signin-aware-success="{{onSignInSuccess}}"
+        on-google-signin-aware-failure="{{onSignInFail}}">
+      </google-signin-aware>
     </div>
 
     <div style="display: {{ authenticated ? 'block' : 'none' }}">
@@ -152,24 +154,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          */
 
         /**
-         * An OAuth 2 clientId reference, obtained from the
-         * [Google Developers Console](https://console.developers.google.com).
-         *
-         * Follow
-         * [the steps](https://developers.google.com/console/help/new/#generatingoauth2)
-         * for registering for OAuth 2, ensure that the
-         * [YouTube Data API v3](https://developers.google.com/youtube/registering_an_application)
-         * is enabled for your API project, and ensure that the JavaScript Origin
-         * is set to the domain hosting the page on which
-         * you'll be using this element.
-         *
-         * @attribute clientId
-         * @type string
-         * @default ''
-         */
-        clientId: '',
-
-        /**
          * Whether files should be automatically uploaded.
          *
          * @attribute auto
@@ -256,34 +240,31 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
           };
         },
 
-        ready: function() {
-          document.addEventListener('google-signin-success', function(e) {
-            this.accessToken = e.detail.result.access_token;
-            this.gapi = e.detail.gapi;
-            this.authenticated = true;
+        onSignInSuccess: function(e, detail) {
+          this.accessToken = detail.user.getAuthResponse().access_token;
+          this.authenticated = true;
 
-            this.gapi.client.request({
-              path: '/youtube/v3/channels',
-              params: {
-                part: 'snippet',
-                mine: true
-              },
-              callback: function(response) {
-                if (response.error) {
-                  this.fire('youtube-upload-fail', response.error.message);
-                } else {
-                  this.channel.name = response.items[0].snippet.title;
-                  this.channel.thumbnail = response.items[0].snippet.thumbnails.default.url;
-                }
-              }.bind(this)
-            });
-          }.bind(this));
+          gapi.client.request({
+            path: '/youtube/v3/channels',
+            params: {
+              part: 'snippet',
+              mine: true
+            },
+            callback: function(response) {
+              if (response.error) {
+                this.fire('youtube-upload-fail', response.error.message);
+              } else {
+                this.channel.name = response.items[0].snippet.title;
+                this.channel.thumbnail = response.items[0].snippet.thumbnails.default.url;
+              }
+            }.bind(this)
+          });
+        },
 
-          document.addEventListener('google-signed-out', function(e) {
-            this.authenticated = false;
-            this.channel.name = 'Not Logged In';
-            this.channel.thumbnail = '';
-          }.bind(this));
+        onSignInFail: function(e, detail) {
+          this.authenticated = false;
+          this.channel.name = 'Not Logged In';
+          this.channel.thumbnail = '';
         },
 
         /**
@@ -373,7 +354,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
         },
 
         pollForVideoStatus: function() {
-          this.gapi.client.request({
+          gapi.client.request({
             path: '/youtube/v3/videos',
             params: {
               part: 'status',

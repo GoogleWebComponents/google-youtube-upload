@@ -273,7 +273,9 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          */
         videoId: {
           type: String,
-          value: ''
+          value: '',
+          readOnly: true,
+          notify: true
         },
 
         channel: {
@@ -294,7 +296,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       ready: function() {
         document.addEventListener('google-signin-success', function(e) {
           
-          this.accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+          this.accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
           this._setAuthenticated(true);
           this.loadChannels();
         }.bind(this));
@@ -403,7 +405,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
           onComplete: function(data) {
             var uploadResponse = JSON.parse(data);
             this.fire('youtube-upload-complete', uploadResponse.id);
-            this.videoId = uploadResponse.id;
+            this._setVideoId(uploadResponse.id);
 
             this.pollForVideoStatus();
           }.bind(this)

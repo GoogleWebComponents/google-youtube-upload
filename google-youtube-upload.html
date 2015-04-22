@@ -1,6 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../google-signin/google-signin.html">
-
+<link rel="import" href="../google-apis/google-client-loader.html">
 <!--
 Element enabling you to upload videos to YouTube.
 
@@ -28,7 +28,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
   <link rel="import" type="css" href="google-youtube-upload.css">
   <template>
     <script src="../cors-upload-sample/upload.js"></script>
-
+    <google-client-loader on-js-api-load="clientLoaded"></google-client-loader>
     <div id="login-logout">
       <img id="channel-image" src="{{channel.thumbnail}}" style$="{{computeChannelImageStyle(channel.thumbnail)}}">
       <span id="channel-name">{{channel.name}}</span>
@@ -39,10 +39,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       </google-signin>
     </div>
 
-    <div style="computeUploadButtonStyle(authenticated)}}">
+    <div style="computeUploadDivStyle(authenticated)}}">
       <input type="file" id="file" class="button" accept="video/*" on-change="handleFileChanged">
 
-      <button on-click="handleUploadClicked" style="display: {{ auto ? 'none' : 'block' }}" disabled="{{!selectedFile}}">Upload Video</button>
+      <button on-click="handleUploadClicked" style$="{{computeUploadButtonStyle(auto}}" disabled="{{!selectedFile}}">Upload Video</button>
 
       <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are authorized by the owner to make the content publicly available on YouTube, and that it otherwise complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms" target="_blank">http://www.youtube.com/t/terms</a></p>
     </div>
@@ -282,19 +282,39 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
             name: 'Not Logged In',
             thumbnail: ''
           };}
+        },
+        selectedFile: {
+          type: Object,
+          value: null
         }
       },
 
       uploadStartTime: 0,
-      selectedFile: null,
 
       ready: function() {
         document.addEventListener('google-signin-success', function(e) {
-          this.gapi = e.detail.gapi;
-          this.accessToken = this.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+          
+          this.accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
           this._setAuthenticated(true);
+          this.loadChannels();
+        }.bind(this));
 
-          this.gapi.client.request({
+        document.addEventListener('google-signed-out', function(e) {
+          this._setAuthenticated(false);
+          this._loadChannelRequested = false;
+          this.setPathValue('channel.name', 'Not Logged In');
+          this.setPathValue('channel.thumbnail', '');
+        }.bind(this));
+      },
+
+      clientLoaded: function() {
+        this.loadChannels();
+      },
+
+      loadChannels: function() {
+        if (gapi && gapi.client && this.authenticated && !this._loadChannelRequested) {
+          this._loadChannelRequested = true;
+          gapi.client.request({
             path: '/youtube/v3/channels',
             params: {
               part: 'snippet',
@@ -309,23 +329,18 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
               }
             }.bind(this)
           });
-        }.bind(this));
-
-        document.addEventListener('google-signed-out', function(e) {
-          this._setAuthenticated(false);
-          this.setPathValue('channel.name', 'Not Logged In');
-          this.setPathValue('channel.thumbnail', '');
-        }.bind(this));
+        }
       },
-
       computeChannelImageStyle: function(thumbnail) {
         return 'display:' + (thumbnail ? 'inline' : 'none');
       },
 
-      computeUploadButtonStyle: function(authenticated) {
+      computeUploadDivStyle: function(authenticated) {
         return 'display:' + (authenticated ? 'block' : 'none'); 
       },
-
+      computeUploadButtonStyle: function(auto) {
+        return 'display:' + (auto ? 'none' : 'block');
+      },
       /**
        * Uploads a video file to YouTube.
        *
@@ -413,7 +428,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       },
 
       pollForVideoStatus: function() {
-        this.gapi.client.request({
+        gapi.client.request({
           path: '/youtube/v3/videos',
           params: {
             part: 'status',

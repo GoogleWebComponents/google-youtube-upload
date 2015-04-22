@@ -8,15 +8,15 @@ Element enabling you to upload videos to YouTube.
 
 Manual upload with a `Video Upload` button once a video file is selected:
 
-    <google-youtube-upload clientId="..."></google-youtube-upload>
+    <google-youtube-upload client-id="..."></google-youtube-upload>
 
 Automatic upload on video file select, with a custom title, and 'unlisted' privacy:
 
     <google-youtube-upload
       auto
-      videoTitle="My Awesome Video"
-      privacyStatus="unlisted"
-      clientId="...">
+      video-title="My Awesome Video"
+      privacy-status="unlisted"
+      client-id="...">
     </google-youtube-upload>
 
 @element google-youtube-upload
@@ -24,133 +24,135 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 @status alpha
 @homepage https://googlewebcomponents.github.io/google-youtube-upload
 -->
-<polymer-element name="google-youtube-upload" attributes="auto videoTitle clientId description tags categoryId privacyStatus videoId">
+<dom-module id="google-youtube-upload">
+  <link rel="import" type="css" href="google-youtube-upload.css">
   <template>
-    <link rel="stylesheet" href="google-youtube-upload.css"/>
     <script src="../cors-upload-sample/upload.js"></script>
 
     <div id="login-logout">
-      <img id="channel-image" src="{{channel.thumbnail}}" style="display: {{ channel.thumbnail ? 'inline' : 'none' }}">
+      <img id="channel-image" src="{{channel.thumbnail}}" style$="{{computeChannelImageStyle(channel.thumbnail)}}">
       <span id="channel-name">{{channel.name}}</span>
 
       <google-signin
-        clientId="{{clientId}}"
+        client-id="{{clientId}}"
         scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly">
       </google-signin>
     </div>
 
-    <div style="display: {{ authenticated ? 'block' : 'none' }}">
-      <input type="file" id="file" class="button" accept="video/*" on-change="{{handleFileChanged}}">
+    <div style="computeUploadButtonStyle(authenticated)}}">
+      <input type="file" id="file" class="button" accept="video/*" on-change="handleFileChanged">
 
-      <button on-click="{{handleUploadClicked}}" style="display: {{ auto ? 'none' : 'block' }}" disabled?="{{ !selectedFile }}">Upload Video</button>
+      <button on-click="handleUploadClicked" style="display: {{ auto ? 'none' : 'block' }}" disabled="{{!selectedFile}}">Upload Video</button>
 
       <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are authorized by the owner to make the content publicly available on YouTube, and that it otherwise complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms" target="_blank">http://www.youtube.com/t/terms</a></p>
     </div>
   </template>
+</dom-module>
+<script>
+  (function() {
+    var STATUS_POLLING_ITERVAL_MILLIS = 60 * 1000; // One minute.
 
-  <script>
-    (function() {
-      var STATUS_POLLING_ITERVAL_MILLIS = 60 * 1000; // One minute.
+    Polymer( {
 
-      Polymer('google-youtube-upload', {
-        /**
-         * Fired when the upload begins.
-         *
-         * `e.detail` is set to the
-         * [file](https://developer.mozilla.org/en-US/docs/Web/API/File)
-         * being uploaded.
-         *
-         * @event youtube-upload-start
-         * @param {Object} e Event parameters.
-         */
+      is: 'google-youtube-upload',
+      /**
+       * Fired when the upload begins.
+       *
+       * `e.detail` is set to the
+       * [file](https://developer.mozilla.org/en-US/docs/Web/API/File)
+       * being uploaded.
+       *
+       * @event youtube-upload-start
+       * @param {Object} e Event parameters.
+       */
 
-        /**
-         * Fired while the upload is in progress.
-         *
-         * `e.detail.progressEvent` is set to the corresponding
-         * [XMLHttpRequestProgressEvent](http://www.w3.org/TR/progress-events/).
-         *
-         * `e.detail.estimatedSecondsRemaining` is set to an estimate of the time remaining
-         * in the upload, based on the average upload speed so far.
-         *
-         * `e.detail.bytesPerSecond` is set to the average number of bytes sent per second
-         * sent so far.
-         *
-         * `e.fractionComplete` is set to the fraction of the upload that's complete, in the range [0, 1].
-         *
-         * @event youtube-upload-progress
-         * @param {Object} e Event parameters.
-         */
+      /**
+       * Fired while the upload is in progress.
+       *
+       * `e.detail.progressEvent` is set to the corresponding
+       * [XMLHttpRequestProgressEvent](http://www.w3.org/TR/progress-events/).
+       *
+       * `e.detail.estimatedSecondsRemaining` is set to an estimate of the time remaining
+       * in the upload, based on the average upload speed so far.
+       *
+       * `e.detail.bytesPerSecond` is set to the average number of bytes sent per second
+       * sent so far.
+       *
+       * `e.fractionComplete` is set to the fraction of the upload that's complete, in the range [0, 1].
+       *
+       * @event youtube-upload-progress
+       * @param {Object} e Event parameters.
+       */
 
-        /**
-         * Fired when YouTube upload has failed.
-         *
-         * Since the actual upload failed, it's not possible for the YouTube server to attempt to
-         * process the video, and no `youtube-processing-poll` events will be fired.
-         *
-         * `e.detail` is set to a string explaining what went wrong.
-         *
-         * @event youtube-upload-fail
-         * @param {Object} e Event parameters
-         */
+      /**
+       * Fired when YouTube upload has failed.
+       *
+       * Since the actual upload failed, it's not possible for the YouTube server to attempt to
+       * process the video, and no `youtube-processing-poll` events will be fired.
+       *
+       * `e.detail` is set to a string explaining what went wrong.
+       *
+       * @event youtube-upload-fail
+       * @param {Object} e Event parameters
+       */
 
-        /**
-         * Fired when video upload has completed, and YouTube has begun processing the video.
-         *
-         * At this point, the video is not yet playable, and there is no guarantee that
-         * the server-side YouTube processing will succeed.
-         *
-         * One or more `youtube-processing-poll` events will then be fired after this event,
-         * followed by either a `youtube-processing-complete` or `youtube-processing-fail`.
-         *
-         * `e.detail` is set to the YouTube video id of the video.
-         *
-         * @event youtube-upload-complete
-         * @param {Object} e Event parameters.
-         */
+      /**
+       * Fired when video upload has completed, and YouTube has begun processing the video.
+       *
+       * At this point, the video is not yet playable, and there is no guarantee that
+       * the server-side YouTube processing will succeed.
+       *
+       * One or more `youtube-processing-poll` events will then be fired after this event,
+       * followed by either a `youtube-processing-complete` or `youtube-processing-fail`.
+       *
+       * `e.detail` is set to the YouTube video id of the video.
+       *
+       * @event youtube-upload-complete
+       * @param {Object} e Event parameters.
+       */
 
-        /**
-         * Fired while server-side processing is in progress.
-         *
-         * Server-side processing can take an
-         * [unpredictable amount of time](https://support.google.com/youtube/answer/71674?hl=en&ref_topic=2888603),
-         * and these events will be periodically fired each time the processing status is polled.
-         *
-         * `e.detail` is set to a
-         * [status](https://developers.google.com/youtube/v3/docs/videos#status)
-         * object.
-         *
-         * @event youtube-processing-poll
-         * @param {Object} e Event parameters
-         */
+      /**
+       * Fired while server-side processing is in progress.
+       *
+       * Server-side processing can take an
+       * [unpredictable amount of time](https://support.google.com/youtube/answer/71674?hl=en&ref_topic=2888603),
+       * and these events will be periodically fired each time the processing status is polled.
+       *
+       * `e.detail` is set to a
+       * [status](https://developers.google.com/youtube/v3/docs/videos#status)
+       * object.
+       *
+       * @event youtube-processing-poll
+       * @param {Object} e Event parameters
+       */
 
-        /**
-         * Fired when server-side processing is successful and the video is
-         * available for playback on YouTube.
-         *
-         * The video can be played at `https://youtu.be/VIDEO_ID` and can be
-         * embedded using the
-         * [`google-youtube`](https://github.com/GoogleWebComponents/google-youtube) element.
-         *
-         * `e.detail` is set to the YouTube video id of the video.
-         *
-         * @event youtube-processing-complete
-         * @param {Object} e Event parameters
-         */
+      /**
+       * Fired when server-side processing is successful and the video is
+       * available for playback on YouTube.
+       *
+       * The video can be played at `https://youtu.be/VIDEO_ID` and can be
+       * embedded using the
+       * [`google-youtube`](https://github.com/GoogleWebComponents/google-youtube) element.
+       *
+       * `e.detail` is set to the YouTube video id of the video.
+       *
+       * @event youtube-processing-complete
+       * @param {Object} e Event parameters
+       */
 
-        /**
-         * Fired when the video
-         * [failed transcoding](https://support.google.com/youtube/topic/2888603?hl=en&ref_topic=16547)
-         * and can't be played on YouTube.
-         *
-         * `e.detail` is set to a
-         * [status](https://developers.google.com/youtube/v3/docs/videos#status)
-         * object which has more details about the failure.
-         *
-         * @event youtube-processing-fail
-         * @param {Object} e Event parameters
-         */
-
+      /**
+       * Fired when the video
+       * [failed transcoding](https://support.google.com/youtube/topic/2888603?hl=en&ref_topic=16547)
+       * and can't be played on YouTube.
+       *
+       * `e.detail` is set to a
+       * [status](https://developers.google.com/youtube/v3/docs/videos#status)
+       * object which has more details about the failure.
+       *
+       * @event youtube-processing-fail
+       * @param {Object} e Event parameters
+       */
+      properties: {
         /**
          * An OAuth 2 clientId reference, obtained from the
          * [Google Developers Console](https://console.developers.google.com).
@@ -167,7 +169,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type string
          * @default ''
          */
-        clientId: '',
+        clientId: {
+          type: String,
+          value: ''
+        },
 
         /**
          * Whether files should be automatically uploaded.
@@ -176,7 +181,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type boolean
          * @default false
          */
-        auto: false,
+        auto: {
+          type: Boolean,
+          value: false
+        },
 
         /**
          * Whether the user has authenticated or not.
@@ -184,16 +192,23 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @attribute authenticated
          * @type boolean
          */
-        authenticated: false,
+        authenticated: {
+          type: Boolean,
+          value: false,
+          readOnly: true
+        },
 
         /**
          * The title for the new YouTube video.
          *
-         * @attribute title
+         * @attribute videoTitle
          * @type string
          * @default 'Untitled Video'
          */
-        videoTitle: 'Untitled Video',
+        videoTitle: {
+          type: String,
+          value: 'Untitled Video'
+        },
 
         /**
          * The description for the new YouTube video.
@@ -202,7 +217,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type string
          * @default 'Uploaded via a web component! Check out https://github.com/GoogleWebComponents/google-youtube-upload'
          */
-        description: 'Uploaded via a web component! Check out https://github.com/GoogleWebComponents/google-youtube-upload',
+        description: {
+          type: String,
+          value: 'Uploaded via a web component! Check out https://github.com/GoogleWebComponents/google-youtube-upload'
+        },
 
         /**
          * The array of tags for the new YouTube video.
@@ -211,7 +229,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type Array.<string>
          * @default ['google-youtube-upload']
          */
-        tags: ['google-youtube-upload'],
+        tags: {
+          type: Array,
+          value: function() { return ['google-youtube-upload']}
+        },
 
         /**
          * The numeric YouTube
@@ -221,7 +242,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type number
          * @default 22
          */
-        categoryId: 22,
+        categoryId: {
+          type: Number,
+          value: 22
+        },
 
         /**
          * The [privacy setting](https://support.google.com/youtube/answer/157177?hl=en)
@@ -233,7 +257,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type string
          * @default 'public'
          */
-        privacyStatus: 'public',
+        privacyStatus: {
+          type: String,
+          value: 'public'
+        },
 
         /**
          * The id of the new video.
@@ -244,170 +271,182 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
          * @type string
          * @default ''
          */
-        videoId: '',
+        videoId: {
+          type: String,
+          value: ''
+        },
 
-        uploadStartTime: 0,
-        selectedFile: null,
-
-        created: function() {
-          this.channel = {
+        channel: {
+          type: Object,
+          value: function() { return {
             name: 'Not Logged In',
             thumbnail: ''
-          };
-        },
+          };}
+        }
+      },
 
-        ready: function() {
-          document.addEventListener('google-signin-success', function(e) {
-            this.accessToken = e.detail.result.access_token;
-            this.gapi = e.detail.gapi;
-            this.authenticated = true;
+      uploadStartTime: 0,
+      selectedFile: null,
 
-            this.gapi.client.request({
-              path: '/youtube/v3/channels',
-              params: {
-                part: 'snippet',
-                mine: true
-              },
-              callback: function(response) {
-                if (response.error) {
-                  this.fire('youtube-upload-fail', response.error.message);
-                } else {
-                  this.channel.name = response.items[0].snippet.title;
-                  this.channel.thumbnail = response.items[0].snippet.thumbnails.default.url;
-                }
-              }.bind(this)
-            });
-          }.bind(this));
+      ready: function() {
+        document.addEventListener('google-signin-success', function(e) {
+          this.gapi = e.detail.gapi;
+          this.accessToken = this.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+          this._setAuthenticated(true);
 
-          document.addEventListener('google-signed-out', function(e) {
-            this.authenticated = false;
-            this.channel.name = 'Not Logged In';
-            this.channel.thumbnail = '';
-          }.bind(this));
-        },
-
-        /**
-         * Uploads a video file to YouTube.
-         *
-         * `this.accessToken` must already be set to a valid OAuth 2 access token.
-         *
-         * @method uploadFile
-         * @param {object} file File object corresponding to the video to upload.
-         */
-        uploadFile: function(file) {
-          var metadata = {
-            snippet: {
-              title: this.videoTitle,
-              description: this.description,
-              tags: this.tags,
-              categoryId: this.categoryId
-            },
-            status: {
-              privacyStatus: this.privacyStatus
-            }
-          };
-
-          var uploader = new MediaUploader({
-            baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
-            file: file,
-            token: this.accessToken,
-            metadata: metadata,
-            params: {
-              part: Object.keys(metadata).join(',')
-            },
-            onError: function(data) {
-              var message = data;
-
-              // Assuming the error is raised by the YouTube API, data will be
-              // a JSON string with error.message set. I am not 100% sure that's the
-              // only time onError will be raised, though.
-              try {
-                var errorResponse = JSON.parse(data);
-                message = errorResponse.error.message;
-              } finally {
-                this.fire('youtube-upload-fail', message);
-              }
-            }.bind(this),
-            onProgress: function(data) {
-              var currentTime = Date.now();
-              var bytesUploaded = data.loaded;
-              var totalBytes = data.total;
-
-              // The times are in millis, so we need to divide by 1000 to get seconds.
-              var bytesPerSecond = bytesUploaded / ((currentTime - this.uploadStartTime) / 1000);
-              var estimatedSecondsRemaining = (totalBytes - bytesUploaded) / bytesPerSecond;
-              var fractionComplete = bytesUploaded / totalBytes;
-
-              this.fire('youtube-upload-progress', {
-                progressEvent: data,
-                bytesPerSecond: bytesPerSecond,
-                estimatedSecondsRemaining: estimatedSecondsRemaining,
-                fractionComplete: fractionComplete
-              });
-            }.bind(this),
-            onComplete: function(data) {
-              var uploadResponse = JSON.parse(data);
-              this.fire('youtube-upload-complete', uploadResponse.id);
-              this.videoId = uploadResponse.id;
-
-              this.pollForVideoStatus();
-            }.bind(this)
-          });
-
-          this.fire('youtube-upload-start', file);
-          // This won't correspond to the *exact* start of the upload, but it should be close enough.
-          this.uploadStartTime = Date.now();
-          uploader.upload();
-        },
-
-        handleFileChanged: function() {
-          this.selectedFile = this.$.file.files[0];
-
-          if (this.auto) {
-            this.uploadFile(this.selectedFile);
-          }
-        },
-
-        handleUploadClicked: function() {
-          this.uploadFile(this.selectedFile);
-        },
-
-        pollForVideoStatus: function() {
           this.gapi.client.request({
-            path: '/youtube/v3/videos',
+            path: '/youtube/v3/channels',
             params: {
-              part: 'status',
-              id: this.videoId
+              part: 'snippet',
+              mine: true
             },
             callback: function(response) {
               if (response.error) {
-                // Not exactly sure how to handle this one, since it means the status polling failed.
-                setTimeout(this.pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
+                this.fire('youtube-upload-fail', response.error.message);
               } else {
-                var status = response.items[0].status;
-
-                switch (status.uploadStatus) {
-                  // This is a non-final status, so we need to poll again.
-                  case 'uploaded':
-                    this.fire('youtube-processing-poll', status);
-                    setTimeout(this.pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
-                  break;
-
-                  // The video was successfully transcoded and is available.
-                  case 'processed':
-                    this.fire('youtube-processing-complete', this.videoId);
-                  break;
-
-                  // All other statuses indicate a permanent transcoding failure.
-                  default:
-                    this.fire('youtube-processing-fail', status);
-                  break;
-                }
+                this.setPathValue('channel.name', response.items[0].snippet.title);
+                this.setPathValue('channel.thumbnail', response.items[0].snippet.thumbnails.default.url);
               }
             }.bind(this)
           });
+        }.bind(this));
+
+        document.addEventListener('google-signed-out', function(e) {
+          this._setAuthenticated(false);
+          this.setPathValue('channel.name', 'Not Logged In');
+          this.setPathValue('channel.thumbnail', '');
+        }.bind(this));
+      },
+
+      computeChannelImageStyle: function(thumbnail) {
+        return 'display:' + (thumbnail ? 'inline' : 'none');
+      },
+
+      computeUploadButtonStyle: function(authenticated) {
+        return 'display:' + (authenticated ? 'block' : 'none'); 
+      },
+
+      /**
+       * Uploads a video file to YouTube.
+       *
+       * `this.accessToken` must already be set to a valid OAuth 2 access token.
+       *
+       * @method uploadFile
+       * @param {object} file File object corresponding to the video to upload.
+       */
+      uploadFile: function(file) {
+        var metadata = {
+          snippet: {
+            title: this.videoTitle,
+            description: this.description,
+            tags: this.tags,
+            categoryId: this.categoryId
+          },
+          status: {
+            privacyStatus: this.privacyStatus
+          }
+        };
+
+        var uploader = new MediaUploader({
+          baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
+          file: file,
+          token: this.accessToken,
+          metadata: metadata,
+          params: {
+            part: Object.keys(metadata).join(',')
+          },
+          onError: function(data) {
+            var message = data;
+
+            // Assuming the error is raised by the YouTube API, data will be
+            // a JSON string with error.message set. I am not 100% sure that's the
+            // only time onError will be raised, though.
+            try {
+              var errorResponse = JSON.parse(data);
+              message = errorResponse.error.message;
+            } finally {
+              this.fire('youtube-upload-fail', message);
+            }
+          }.bind(this),
+          onProgress: function(data) {
+            var currentTime = Date.now();
+            var bytesUploaded = data.loaded;
+            var totalBytes = data.total;
+
+            // The times are in millis, so we need to divide by 1000 to get seconds.
+            var bytesPerSecond = bytesUploaded / ((currentTime - this.uploadStartTime) / 1000);
+            var estimatedSecondsRemaining = (totalBytes - bytesUploaded) / bytesPerSecond;
+            var fractionComplete = bytesUploaded / totalBytes;
+
+            this.fire('youtube-upload-progress', {
+              progressEvent: data,
+              bytesPerSecond: bytesPerSecond,
+              estimatedSecondsRemaining: estimatedSecondsRemaining,
+              fractionComplete: fractionComplete
+            });
+          }.bind(this),
+          onComplete: function(data) {
+            var uploadResponse = JSON.parse(data);
+            this.fire('youtube-upload-complete', uploadResponse.id);
+            this.videoId = uploadResponse.id;
+
+            this.pollForVideoStatus();
+          }.bind(this)
+        });
+
+        this.fire('youtube-upload-start', file);
+        // This won't correspond to the *exact* start of the upload, but it should be close enough.
+        this.uploadStartTime = Date.now();
+        uploader.upload();
+      },
+
+      handleFileChanged: function() {
+        this.selectedFile = this.$.file.files[0];
+
+        if (this.auto) {
+          this.uploadFile(this.selectedFile);
         }
-      });
-    })();
-  </script>
-</polymer-element>
+      },
+
+      handleUploadClicked: function() {
+        this.uploadFile(this.selectedFile);
+      },
+
+      pollForVideoStatus: function() {
+        this.gapi.client.request({
+          path: '/youtube/v3/videos',
+          params: {
+            part: 'status',
+            id: this.videoId
+          },
+          callback: function(response) {
+            if (response.error) {
+              // Not exactly sure how to handle this one, since it means the status polling failed.
+              setTimeout(this.pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
+            } else {
+              var status = response.items[0].status;
+
+              switch (status.uploadStatus) {
+                // This is a non-final status, so we need to poll again.
+                case 'uploaded':
+                  this.fire('youtube-processing-poll', status);
+                  setTimeout(this.pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
+                break;
+
+                // The video was successfully transcoded and is available.
+                case 'processed':
+                  this.fire('youtube-processing-complete', this.videoId);
+                break;
+
+                // All other statuses indicate a permanent transcoding failure.
+                default:
+                  this.fire('youtube-processing-fail', status);
+                break;
+              }
+            }
+          }.bind(this)
+        });
+      }
+    });
+  })();
+</script>

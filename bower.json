@@ -1,6 +1,6 @@
 {
   "name": "google-youtube-upload",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Upload videos to YouTube from your browser.",
   "homepage": "https://googlewebcomponents.github.io/google-youtube-upload",
   "main": "google-youtube-upload.html",
@@ -26,7 +26,8 @@
   ],
   "dependencies": {
     "cors-upload-sample": "googledrive/cors-upload-sample#master",
-    "google-signin": "GoogleWebComponents/google-signin#~0.2.0",
+    "google-apis": "GoogleWebComponents/google-apis#~0.4.3",
+    "google-signin": "GoogleWebComponents/google-signin#~0.3.0",
     "google-youtube": "GoogleWebComponents/google-youtube#~1.0.1",
     "polymer": "Polymer/polymer#^0.5.1"
   }

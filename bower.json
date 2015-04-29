@@ -29,5 +29,8 @@
     "google-signin": "GoogleWebComponents/google-signin#0.8-preview",
     "google-youtube": "GoogleWebComponents/google-youtube#0.8-preview",
     "cors-upload-sample": "googledrive/cors-upload-sample#master"
+  },
+  "devDependencies": {
+    "iron-doc-viewer": "PolymerElements/iron-doc-viewer#^0.8.8"
   }
 }

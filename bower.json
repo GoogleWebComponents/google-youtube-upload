@@ -25,7 +25,7 @@
     "web-component"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#0.8-preview",
+    "polymer": "Polymer/polymer#v0.8.0-rc.7",
     "google-signin": "GoogleWebComponents/google-signin#0.8-preview",
     "google-youtube": "GoogleWebComponents/google-youtube#0.8-preview",
     "cors-upload-sample": "googledrive/cors-upload-sample#master"

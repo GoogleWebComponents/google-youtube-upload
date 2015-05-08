@@ -79,7 +79,7 @@
       </p>
     </template>
 
-    <template is="x-if" if="{{canShowProcessingComplete(state)}}" restamp>
+    <template is="dom-if" if="{{canShowProcessingComplete(state)}}" restamp>
       <p>
         Processing complete. The video is available at
         <a href$="{{videoUrl}}" target="_blank">{{videoUrl}}</a>

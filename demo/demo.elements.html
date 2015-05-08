@@ -1,6 +1,6 @@
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../google-youtube/google-youtube.html">
-<link rel="import" href="google-youtube-upload.html">
+<link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../google-youtube/google-youtube.html">
+<link rel="import" href="../google-youtube-upload.html">
 
 <dom-module id="youtube-upload-demo-element">
   <style>
@@ -31,18 +31,18 @@
       element!
     </p>
 
-    <template is="x-if" if="{{canShowPreUpload(state)}}">
+    <template is="dom-if" if="{{canShowPreUpload(state)}}">
       <div>
         <label for="video-title">Title:</label>
-        <input id="video-title" type="text" value="{{parent.videoTitle::change}}">
+        <input id="video-title" type="text" value="{{videoTitle::change}}">
       </div>
       <div>
         <label for="description">Description:</label>
-        <textarea id="description" value="{{parent.description::change}}"></textarea>
+        <textarea id="description" value="{{description::change}}"></textarea>
       </div>
       <div>
         <label for="privacy-status">Privacy Status:</label>
-        <select id="privacy-status" value="{{parent.privacyStatus::change}}">
+        <select id="privacy-status" value="{{privacyStatus::change}}">
           <option>public</option>
           <option>unlisted</option>
           <option>private</option>
@@ -50,10 +50,10 @@
       </div>
       <google-youtube-upload
         client-id="1054047045356-j8pgqgls9vdef3rl09hapoicumbte0bo.apps.googleusercontent.com"
-        video-title="{{parent.videoTitle}}"
-        description="{{parent.description}}"
-        privacy-status="{{parent.privacyStatus}}"
-        video-id="{{parent.videoId}}"
+        video-title="{{videoTitle}}"
+        description="{{description}}"
+        privacy-status="{{privacyStatus}}"
+        video-id="{{videoId}}"
         on-youtube-upload-start="handleYouTubeUploadStart"
         on-youtube-upload-progress="handleYouTubeUploadProgress"
         on-youtube-upload-complete="handleYouTubeUploadComplete"
@@ -64,32 +64,32 @@
       </google-youtube-upload>
     </template>
 
-    <template is="x-if" if="{{canShowUpload(state)}}">
+    <template is="dom-if" if="{{canShowUpload(state)}}">
       <div>
         Upload Progress:
-        <progress max="1" value="{{parent.fractionComplete}}"></progress>
-        <span>{{computeProgressText(parent.megabytesPerSecond, parent.minutesRemaining, parent.secondsRemaining)}}</span>
+        <progress max="1" value="{{fractionComplete}}"></progress>
+        <span>{{computeProgressText(megabytesPerSecond, minutesRemaining, secondsRemaining)}}</span>
       </div>
     </template>
 
-    <template is="x-if" if="{{canShowUploadComplete(state)}}">
+    <template is="dom-if" if="{{canShowUploadComplete(state)}}">
       <p>
-        Upload complete. Please wait while video id '<span>{{parent.videoId}}</span>' is
-        <a href="https://support.google.com/youtube/answer/71674?ref_topic=2888603" target="_blank">processing</a><span>{{parent.processingEllipses}}</span>
+        Upload complete. Please wait while video id '<span>{{videoId}}</span>' is
+        <a href="https://support.google.com/youtube/answer/71674?ref_topic=2888603" target="_blank">processing</a><span>{{processingEllipses}}</span>
       </p>
     </template>
 
     <template is="x-if" if="{{canShowProcessingComplete(state)}}" restamp>
       <p>
         Processing complete. The video is available at
-        <a href$="{{parent.videoUrl}}" target="_blank">{{parent.videoUrl}}</a>
+        <a href$="{{videoUrl}}" target="_blank">{{videoUrl}}</a>
         and embedded below:
       </p>
-      <google-youtube video-id="{{parent.videoId}}"></google-youtube>
+      <google-youtube video-id="{{videoId}}"></google-youtube>
     </template>
 
-    <template is="x-if" if="{{canShowError(state)}}">
-      <p>{{parent.error}}</p>
+    <template is="dom-if" if="{{canShowError(state)}}">
+      <p>{{error}}</p>
     </template>
 
   </template>

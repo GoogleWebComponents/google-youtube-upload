@@ -19,19 +19,15 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       client-id="...">
     </google-youtube-upload>
 
-@element google-youtube-upload
-@blurb Element enabling you to upload videos to YouTube.
-@status alpha
-@homepage https://googlewebcomponents.github.io/google-youtube-upload
 -->
 <dom-module id="google-youtube-upload">
   <link rel="import" type="css" href="google-youtube-upload.css">
   <template>
     <script src="../cors-upload-sample/upload.js"></script>
-    <google-client-loader on-js-api-load="clientLoaded"></google-client-loader>
+    <google-client-loader on-js-api-load="_clientLoaded"></google-client-loader>
     <div id="login-logout">
-      <img id="channel-image" src="{{channel.thumbnail}}" style$="{{computeChannelImageStyle(channel.thumbnail)}}">
-      <span id="channel-name">{{channel.name}}</span>
+      <img id="channel-image" src="{{_channel.thumbnail}}" style$="{{_computeChannelImageStyle(_channel.thumbnail)}}">
+      <span id="channel-name">{{_channel.name}}</span>
 
       <google-signin
         client-id="{{clientId}}"
@@ -39,10 +35,10 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       </google-signin>
     </div>
 
-    <div style="computeUploadDivStyle(authenticated)}}">
-      <input type="file" id="file" class="button" accept="video/*" on-change="handleFileChanged">
+    <div style="_computeUploadDivStyle(authenticated)}}">
+      <input type="file" id="file" class="button" accept="video/*" on-change="_handleFileChanged">
 
-      <button on-click="handleUploadClicked" style$="{{computeUploadButtonStyle(auto}}" disabled="{{!selectedFile}}">Upload Video</button>
+      <button on-click="_handleUploadClicked" style$="{{_computeUploadButtonStyle(auto}}" disabled="{{!_selectedFile}}">Upload Video</button>
 
       <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are authorized by the owner to make the content publicly available on YouTube, and that it otherwise complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms" target="_blank">http://www.youtube.com/t/terms</a></p>
     </div>
@@ -278,42 +274,42 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
           notify: true
         },
 
-        channel: {
+        _channel: {
           type: Object,
           value: function() { return {
             name: 'Not Logged In',
             thumbnail: ''
           };}
         },
-        selectedFile: {
+        _selectedFile: {
           type: Object,
           value: null
         }
       },
 
-      uploadStartTime: 0,
+      _uploadStartTime: 0,
 
       ready: function() {
         document.addEventListener('google-signin-success', function(e) {
-          
+
           this.accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
           this._setAuthenticated(true);
-          this.loadChannels();
+          this._loadChannels();
         }.bind(this));
 
         document.addEventListener('google-signed-out', function(e) {
           this._setAuthenticated(false);
           this._loadChannelRequested = false;
-          this.setPathValue('channel.name', 'Not Logged In');
-          this.setPathValue('channel.thumbnail', '');
+          this.set('_channel.name', 'Not Logged In');
+          this.set('_channel.thumbnail', '');
         }.bind(this));
       },
 
-      clientLoaded: function() {
-        this.loadChannels();
+      _clientLoaded: function() {
+        this._loadChannels();
       },
 
-      loadChannels: function() {
+      _loadChannels: function() {
         if (gapi && gapi.client && this.authenticated && !this._loadChannelRequested) {
           this._loadChannelRequested = true;
           gapi.client.request({
@@ -326,21 +322,21 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
               if (response.error) {
                 this.fire('youtube-upload-fail', response.error.message);
               } else {
-                this.setPathValue('channel.name', response.items[0].snippet.title);
-                this.setPathValue('channel.thumbnail', response.items[0].snippet.thumbnails.default.url);
+                this.set('_channel.name', response.items[0].snippet.title);
+                this.set('_channel.thumbnail', response.items[0].snippet.thumbnails.default.url);
               }
             }.bind(this)
           });
         }
       },
-      computeChannelImageStyle: function(thumbnail) {
+      _computeChannelImageStyle: function(thumbnail) {
         return 'display:' + (thumbnail ? 'inline' : 'none');
       },
 
-      computeUploadDivStyle: function(authenticated) {
-        return 'display:' + (authenticated ? 'block' : 'none'); 
+      _computeUploadDivStyle: function(authenticated) {
+        return 'display:' + (authenticated ? 'block' : 'none');
       },
-      computeUploadButtonStyle: function(auto) {
+      _computeUploadButtonStyle: function(auto) {
         return 'display:' + (auto ? 'none' : 'block');
       },
       /**
@@ -391,7 +387,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
             var totalBytes = data.total;
 
             // The times are in millis, so we need to divide by 1000 to get seconds.
-            var bytesPerSecond = bytesUploaded / ((currentTime - this.uploadStartTime) / 1000);
+            var bytesPerSecond = bytesUploaded / ((currentTime - this._uploadStartTime) / 1000);
             var estimatedSecondsRemaining = (totalBytes - bytesUploaded) / bytesPerSecond;
             var fractionComplete = bytesUploaded / totalBytes;
 
@@ -407,29 +403,29 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
             this.fire('youtube-upload-complete', uploadResponse.id);
             this._setVideoId(uploadResponse.id);
 
-            this.pollForVideoStatus();
+            this._pollForVideoStatus();
           }.bind(this)
         });
 
         this.fire('youtube-upload-start', file);
         // This won't correspond to the *exact* start of the upload, but it should be close enough.
-        this.uploadStartTime = Date.now();
+        this._uploadStartTime = Date.now();
         uploader.upload();
       },
 
-      handleFileChanged: function() {
-        this.selectedFile = this.$.file.files[0];
+      _handleFileChanged: function() {
+        this._selectedFile = this.$.file.files[0];
 
         if (this.auto) {
-          this.uploadFile(this.selectedFile);
+          this.uploadFile(this._selectedFile);
         }
       },
 
-      handleUploadClicked: function() {
-        this.uploadFile(this.selectedFile);
+      _handleUploadClicked: function() {
+        this.uploadFile(this._selectedFile);
       },
 
-      pollForVideoStatus: function() {
+      _pollForVideoStatus: function() {
         gapi.client.request({
           path: '/youtube/v3/videos',
           params: {
@@ -439,7 +435,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
           callback: function(response) {
             if (response.error) {
               // Not exactly sure how to handle this one, since it means the status polling failed.
-              setTimeout(this.pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
+              setTimeout(this._pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
             } else {
               var status = response.items[0].status;
 
@@ -447,7 +443,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
                 // This is a non-final status, so we need to poll again.
                 case 'uploaded':
                   this.fire('youtube-processing-poll', status);
-                  setTimeout(this.pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
+                  setTimeout(this._pollForVideoStatus.bind(this), STATUS_POLLING_ITERVAL_MILLIS);
                 break;
 
                 // The video was successfully transcoded and is available.

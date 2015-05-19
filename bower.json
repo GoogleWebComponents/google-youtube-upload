@@ -9,12 +9,9 @@
   ],
   "license": "Apache-2.0",
   "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests",
-    "../"
+    "/.*",
+    "/test/",
+    "/demo/"
   ],
   "keywords": [
     "google",
@@ -25,9 +22,12 @@
     "web-component"
   ],
   "dependencies": {
-    "cors-upload-sample": "googledrive/cors-upload-sample#master",
-    "google-signin": "GoogleWebComponents/google-signin#~0.2.0",
-    "google-youtube": "GoogleWebComponents/google-youtube#~1.0.1",
-    "polymer": "Polymer/polymer#^0.5.1"
+    "polymer": "Polymer/polymer#v0.9.0-rc.1",
+    "google-signin": "GoogleWebComponents/google-signin#0.8-preview",
+    "cors-upload-sample": "googledrive/cors-upload-sample#master"
+  },
+  "devDependencies": {
+    "google-youtube": "GoogleWebComponents/google-youtube#0.8-preview",
+    "iron-component-page": "PolymerElements/iron-component-page#^0.9.1"
   }
 }

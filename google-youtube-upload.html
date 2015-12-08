@@ -1,6 +1,16 @@
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../google-signin/google-signin.html">
 <link rel="import" href="../google-apis/google-client-loader.html">
+<link rel="import" href="../google-signin/google-signin.html">
+<link rel="import" href="../iron-icons/av-icons.html">
+<link rel="import" href="../iron-icons/image-icons.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-pages/iron-pages.html">
+<link rel="import" href="../paper-fab/paper-fab.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-styles/color.html">
+<link rel="import" href="../paper-styles/typography.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="./upload-import.html">
 <!--
 Element enabling you to upload videos to YouTube.
 
@@ -23,45 +33,109 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 -->
 <dom-module id="google-youtube-upload">
   <style>
+    :host {
+      display: block;
+      @apply(--layout-relative);
+      @apply(--paper-font-common-base);
+    }
 
+    #back-button {
+      color: var(--google-grey-500);
+      left: 0;
+      position: absolute;
+      top: 0;
+      z-index: 1;
+    }
+
+    iron-pages > section {
+      @apply(--layout-fit);
+      @apply(--layout-vertical);
+      @apply(--layout-center);
+      @apply(--layout-center-justified);
+    }
+
+    .fabs {
+      @apply(--layout-horizontal);
+      position: absolute;
+      bottom: 0;
+      right: 0;
+    }
+
+    .fabs > paper-fab {
+      margin: 16px;
+    }
+
+    video {
+      width: 100%;
+      max-height: 100%;
+    }
+
+    section[name="record-video"] {
+      background-color: #000000;
+    }
   </style>
 
   <template>
-    <script src="../cors-upload-sample/upload.js"></script>
-
     <google-client-loader on-js-api-load="_clientLoaded"></google-client-loader>
 
-    <div id="login-logout">
-      <template is="dom-if" if="[[_channel]]">
-        <img id="channel-image"
-             src="[[_channel.thumbnail]]">
-        <span id="channel-name">[[_channel.name]]</span>
-      </template>
+    <paper-icon-button id="back-button"
+                       hidden$="[[_calculateBackButtonHidden(_selectedSection)]]"
+                       on-tap="_transitionToLoginLogout"
+                       icon="arrow-back">
+    </paper-icon-button>
 
-      <google-signin client-id="[[clientId]]"
-                     scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
-                     on-google-signin-success="_handleSignedIn"
-                     on-google-signed-out="_handleSignedOut">
-      </google-signin>
-    </div>
+    <iron-pages attr-for-selected="name"
+                selected="[[_selectedSection]]">
+      <section name="login-logout">
+        <google-signin client-id="[[clientId]]"
+                       scopes="https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
+                       on-google-signin-success="_handleSignedIn"
+                       on-google-signed-out="_handleSignedOut">
+        </google-signin>
 
-    <template is="dom-if" if="[[_accessToken]]">
-      <input type="file"
-             class="button"
-             accept="video/*"
-             on-change="_handleFileChanged">
-      <button on-tap="_handleUploadClicked"
-              style$="{{_computeUploadButtonStyle(auto}}"
-              disabled="{{!_selectedFile}}">
-        Upload Video
-      </button>
-      <p id="disclaimer">
-        By uploading a video, you certify that you own all rights to the content or that you are
-        authorized by the owner to make the content publicly available on YouTube, and that it
-        otherwise complies with the YouTube Terms of Service located at
-        <a href="http://www.youtube.com/t/terms" target="_blank">http://www.youtube.com/t/terms</a>
-      </p>
-    </template>
+        <template is="dom-if" if="[[_channel]]">
+          <img src="[[_channel.thumbnail]]">
+          <span>[[_channel.name]]</span>
+
+          <div class="fabs">
+            <paper-fab icon="file-upload"
+                       on-tap="_transitionToUploadFile">
+            </paper-fab>
+            <paper-fab icon="av:videocam"
+                       on-tap="_transitionToRecordVideo">
+            </paper-fab>
+          </div>
+        </template>
+      </section>
+
+      <section name="upload-file">
+        <input type="file"
+               accept="video/*"
+               on-change="_handleFileChanged">
+        <button on-tap="_handleUploadClicked">Upload Video</button>
+      </section>
+
+      <section name="record-video">
+        <video id="get-user-media"
+               autoplay
+               controls$="[[_calculateVideoControls(_recordingState)]]">
+        </video>
+        <div class="fabs">
+          <paper-fab icon="av:stop"
+                     hidden="[[_calculateStopButtonHidden(_recordingState)]]"
+                     on-tap="_handleStopClicked">
+          </paper-fab>
+          <paper-fab icon="image:brightness-1"
+                     hidden="[[_calculateRecordButtonHidden(_recordingState)]]"
+                     on-tap="_handleRecordClicked">
+          </paper-fab>
+          <paper-fab icon="file-upload"
+                     hidden="[[_calculateRecordingUploadButtonHidden(_recordingState)]]"
+                     on-tap="_handleRecordingUploadClicked">
+          </paper-fab>
+        </div>
+      </section>
+    </iron-pages>
   </template>
 </dom-module>
 
@@ -259,11 +333,11 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        *
        * @attribute privacyStatus
        * @type string
-       * @default 'public'
+       * @default 'unlisted'
        */
       privacyStatus: {
         type: String,
-        value: 'public'
+        value: 'unlisted'
       },
 
       /**
@@ -283,8 +357,55 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       }
     },
 
-    // One minute.
-    _STATUS_POLLING_ITERVAL_MILLIS: 60 * 1000,
+    _transitionToLoginLogout: function() {
+      this._selectedSection = 'login-logout';
+    },
+
+    _transitionToUploadFile: function() {
+      this._selectedSection = 'upload-file';
+    },
+
+    _transitionToRecordVideo: function() {
+      this._selectedSection = 'record-video';
+
+      navigator.mediaDevices.getUserMedia({audio: true, video: true}).then(function(stream) {
+        this.$$('#get-user-media').src = URL.createObjectURL(stream);
+        this._recordedBlobs = [];
+        this._mediaRecorder = new MediaRecorder(stream);
+
+        this._mediaRecorder.addEventListener('dataavailable', function(event) {
+          if (event.data.size > 0) {
+            this._recordedBlobs.push(event.data);
+          }
+        }.bind(this));
+
+        this._mediaRecorder.addEventListener('stop', function() {
+          this._videoBlob = new Blob(this._recordedBlobs, {type: this._mediaRecorder.mimeType});
+          this._mediaRecorder.stream.getAudioTracks().forEach(function(track) {
+            track.stop();
+          });
+          this._mediaRecorder.stream.getVideoTracks().forEach(function(track) {
+            track.stop();
+          });
+          this._mediaRecorder = null;
+          this._recordedBlobs = null;
+
+          this.$$('#get-user-media').src = URL.createObjectURL(this._videoBlob);
+        }.bind(this));
+
+        this._recordingState = 'not-started';
+      }.bind(this));
+    },
+
+    ready: function() {
+      // One minute.
+      this._STATUS_POLLING_ITERVAL_MILLIS = 60 * 1000;
+      this._transitionToLoginLogout();
+    },
+
+    _calculateBackButtonHidden: function(section) {
+      return section === 'login-logout';
+    },
 
     _handleSignedIn: function() {
       this._accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
@@ -404,8 +525,12 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
     _handleFileChanged: function(e) {
       this._selectedFile = e.target.files[0];
 
-      if (this.auto) {
-        this.uploadFile(this._selectedFile);
+      if (this._selectedFile) {
+        this._uploadButtonDisabled = false;
+
+        if (this.auto) {
+          this.uploadFile(this._selectedFile);
+        }
       }
     },
 
@@ -447,6 +572,38 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
           }
         }.bind(this)
       });
+    },
+
+    _calculateRecordButtonHidden: function(recordingState) {
+      return recordingState !== 'not-started';
+    },
+
+    _calculateStopButtonHidden: function(recordingState) {
+      return recordingState !== 'started';
+    },
+
+    _calculateRecordingUploadButtonHidden: function(recordingState) {
+      return recordingState !== 'stopped';
+    },
+
+    _handleRecordClicked: function() {
+      this._recordingState = 'started';
+
+      this._mediaRecorder.start(10);
+    },
+
+    _handleStopClicked: function() {
+      this._recordingState = 'stopped';
+
+      this._mediaRecorder.stop();
+    },
+
+    _handleRecordingUploadClicked: function() {
+      this.uploadFile(this._videoBlob);
+    },
+
+    _calculateVideoControls: function(recordingState) {
+      return recordingState === 'stopped';
     }
   });
 </script>

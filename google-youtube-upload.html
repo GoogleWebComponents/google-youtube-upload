@@ -316,10 +316,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        *
        * If false, the upload must be started by calling the uploadFile()
        * method and passing in a reference to the selected file.
-       *
-       * @attribute auto
-       * @type boolean
-       * @default false
        */
       auto: {
         type: Boolean,
@@ -328,10 +324,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 
       /**
        * The title for the new YouTube video.
-       *
-       * @attribute videoTitle
-       * @type string
-       * @default 'Untitled Video'
        */
       videoTitle: {
         type: String,
@@ -340,10 +332,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 
       /**
        * The description for the new YouTube video.
-       *
-       * @attribute description
-       * @type string
-       * @default 'Uploaded via a web component! Check out https://github.com/GoogleWebComponents/google-youtube-upload'
        */
       description: {
         type: String,
@@ -352,15 +340,11 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
 
       /**
        * The array of tags for the new YouTube video.
-       *
-       * @attribute tags
-       * @type Array.<string>
-       * @default ['google-youtube-upload']
        */
       tags: {
         type: Array,
         value: function() {
-          return ['google-youtube-upload']
+          return ['google-youtube-upload'];
         }
       },
 
@@ -369,10 +353,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        * [cateogry id](https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videoCategories.list?part=snippet&regionCode=us).
        *
        * The default value, `22`, corresponds to the "People & Blogs" category.
-       *
-       * @attribute categoryId
-       * @type number
-       * @default 22
        */
       categoryId: {
         type: Number,
@@ -384,10 +364,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        * for the new video.
        *
        * Valid values are 'public', 'private', and 'unlisted'.
-       *
-       * @attribute privacyStatus
-       * @type string
-       * @default 'unlisted'
        */
       privacyStatus: {
         type: String,
@@ -398,10 +374,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        * The id of the new video.
        *
        * This is set as soon as a `youtube-upload-complete` event is fired.
-       *
-       * @attribute videoId
-       * @type string
-       * @default ''
        */
       videoId: {
         notify: true,
@@ -414,10 +386,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        * Whether the current browser supports recording and uploading video.
        *
        * This depends on the `MediaRecorder` and `MediaDevices` APIs.
-       *
-       * @attribute videoId
-       * @type string
-       * @default ''
        */
       recordSupported: {
         readOnly: true,

@@ -11,21 +11,39 @@
 <link rel="import" href="./upload-import.html">
 
 <!--
-Element enabling you to upload videos to YouTube.
+Element enabling you to record and upload videos to YouTube.
 
 ##### Examples
 
 Manual upload with a `Video Upload` button once a video file is selected:
 
-    <google-youtube-upload client-id="..."></google-youtube-upload>
+    <google-youtube-upload client-id='...'></google-youtube-upload>
 
-Automatic upload on video file select, with a custom title, and 'unlisted' privacy:
+Automatic upload on video file select, with a custom title, and `unlisted` privacy:
 
     <google-youtube-upload
       auto
-      video-title="My Awesome Video"
-      privacy-status="unlisted"
-      client-id="...">
+      video-title='My Awesome Video'
+      privacy-status='unlisted'
+      client-id='...'>
+    </google-youtube-upload>
+
+Capture screen on Chrome (it's currently available only on Android and you need to enable it
+by toggling `chrome://flags#enable-usermedia-screen-capturing` flag):
+
+    <google-youtube-upload
+      audio='false'
+      video='{"mandatory": {"chromeMediaSource": "screen"}}'
+      client-id='...'>
+    </google-youtube-upload>
+
+Capture screen on Firefox (you can also use `{mediaSource: "window"}` and `{mediaSource: "application"}`
+for capturing only windows or applications (all the windows of an application), not the whole screen):
+
+    <google-youtube-upload
+      audio='false'
+      video='{mediaSource: "screen"}'
+      client-id='...'>
     </google-youtube-upload>
 
 @demo
@@ -301,10 +319,6 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        * is enabled for your API project, and ensure that the JavaScript Origin
        * is set to the domain hosting the page on which
        * you'll be using this element.
-       *
-       * @attribute clientId
-       * @type string
-       * @default ''
        */
       clientId: {
         type: String,
@@ -363,7 +377,7 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
        * The [privacy setting](https://support.google.com/youtube/answer/157177?hl=en)
        * for the new video.
        *
-       * Valid values are 'public', 'private', and 'unlisted'.
+       * Valid values are `public`, `private`, and `unlisted`.
        */
       privacyStatus: {
         type: String,
@@ -393,6 +407,30 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
         value: Boolean('MediaRecorder' in window &&
                        'mediaDevices' in navigator &&
                        'getUserMedia' in navigator.mediaDevices)
+      },
+
+      /**
+       * The [MediaStream audio constraints](https://developer.mozilla.org/docs/Web/API/MediaStreamConstraints/audio).
+       */
+      audio: {
+        type: Object,
+        value: true
+      },
+
+      /**
+       * The [MediaStream video constraints](https://developer.mozilla.org/docs/Web/API/MediaStreamConstraints/video).
+       */
+      video: {
+        type: Object,
+        value: true
+      },
+
+      /**
+       * The media type.
+       */
+      mimeType: {
+        type: String,
+        value: 'video/webm;codecs=vp9,vp8'
       }
     },
 
@@ -496,12 +534,12 @@ Automatic upload on video file select, with a custom title, and 'unlisted' priva
       }
 
       return navigator.mediaDevices.getUserMedia({
-        audio: true, video: true
+        audio: this.audio, video: this.video
       }).then(function(stream) {
         this.$$('#get-user-media').src = URL.createObjectURL(stream);
         this._recordedBlobs = [];
         this._mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm;codecs=vp9,vp8'
+          mimeType: this.mimeType
         });
 
         this._mediaRecorder.addEventListener('dataavailable', function(event) {

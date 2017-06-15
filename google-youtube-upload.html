@@ -17,34 +17,49 @@ Element enabling you to record and upload videos to YouTube.
 
 Manual upload with a `Video Upload` button once a video file is selected:
 
-    <google-youtube-upload client-id='...'></google-youtube-upload>
+    <google-youtube-upload client-id="..."></google-youtube-upload>
 
 Automatic upload on video file select, with a custom title, and `unlisted` privacy:
 
     <google-youtube-upload
       auto
-      video-title='My Awesome Video'
-      privacy-status='unlisted'
-      client-id='...'>
+      video-title="My Awesome Video"
+      privacy-status="unlisted"
+      client-id="...">
     </google-youtube-upload>
 
-Capture screen on Chrome (it's currently available only on Android and you need to enable it
-by toggling `chrome://flags#enable-usermedia-screen-capturing` flag):
+Record a device screen:
+
+Screen sharing in Chrome and Firefox has some differences.
+
+To capture the screen in Firefox use `{"mediaSource": "screen"}` video constraint:
 
     <google-youtube-upload
-      audio='false'
-      video='{"mandatory": {"chromeMediaSource": "screen"}}'
-      client-id='...'>
-    </google-youtube-upload>
-
-Capture screen on Firefox (you can also use `{"mediaSource": "window"}` and `{"mediaSource": "application"}`
-for capturing only windows or applications (all the windows of an application), not the whole screen):
-
-    <google-youtube-upload
-      audio='false'
       video='{"mediaSource": "screen"}'
-      client-id='...'>
+      client-id="...">
     </google-youtube-upload>
+
+You can also use `{"mediaSource": "window"}` to capture only application window
+and `{"mediaSource": "application"}` to capture all application windows,
+not the whole screen.
+
+NOTE: Firefox (before version 52) requires to set `media.getusermedia.screensharing.enabled`
+to `true` and add the web app domain to `media.getusermedia.screensharing.allowed_domains`
+in `about:config`.
+
+To capture the screen in Chrome use `{"mandatory": {"chromeMediaSource": "screen"}}`
+video constraint:
+
+    <google-youtube-upload
+      audio="false"
+      video='{"mandatory": {"chromeMediaSource": "screen"}}'
+      client-id="...">
+    </google-youtube-upload>
+
+NOTE: As of today (April 23th, 2017), screen capturing in Chrome is available only on
+Android and requires enabling `chrome://flags#enable-usermedia-screen-capturing` flag.
+
+NOTE: Chrome doesn't support combining screen capture video tracks with audio tracks.
 
 @demo
 -->
